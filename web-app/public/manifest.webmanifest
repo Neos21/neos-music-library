@@ -1,0 +1,13 @@
+{
+  "name": "Neo's Music Library",
+  "short_name": "Neo's Music Library",
+  "lang": "ja",
+  "theme_color": "#0088ff",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "https://music-library.neos21.workers.dev",
+  "icons": [
+    { "src": "icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "icon-512.png", "type": "image/png", "sizes": "512x512" }
+  ]
+}

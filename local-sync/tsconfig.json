@@ -1,31 +1,42 @@
 {
-  "include": [  // 型チェック・ビルドの対象ファイル
-    "src/**/*.ts"
-  ],
-  "exclude": [  // 型チェック・ビルドの対象外ファイル
+  // 型チェック・ビルドの対象外ファイル
+  "exclude": [
     "node_modules"
   ],
   "compilerOptions": {
-    "target": "ES2022",  // 出力される JS の文法レベル
-    "module": "NodeNext",  // Node.js の ESM・CommonJS 判定ルールを使う
-    "moduleResolution": "NodeNext",  // `import` の解決方法を Node.js のルールに合わせる
+    // 出力される JS の文法レベル
+    "target": "ES2022",
+    // Node.js の ESM・CommonJS 判定ルールを使う
+    "module": "NodeNext",
+    // `import` の解決方法を Node.js のルールに合わせる
+    "moduleResolution": "NodeNext",
     
-    "strict": true,  // 主要な型チェックを有効にする
-    "esModuleInterop": true,  // CommonJS 形式のライブラリでも `import` できるようにする
-    "allowSyntheticDefaultImports": true,  // `default export` が型上存在しない CommonJS モジュールでも `default import` を許可する
+    // 主要な型チェックを有効にする
+    "strict": true,
+    // CommonJS 形式のライブラリでも `import` できるようにする
+    "esModuleInterop": true,
+    // `default export` が型上存在しない CommonJS モジュールでも `default import` を許可する
+    "allowSyntheticDefaultImports": true,
     
-    "skipLibCheck": true,  // `node_modules/` 内の `.d.ts` の型チェックを省略する
-    "forceConsistentCasingInFileNames": true,  // `import` のファイル名の大文字・小文字の表記揺れを検出する。
+    // `node_modules/` 内の `.d.ts` の型チェックを省略する
+    "skipLibCheck": true,
+    // `import` のファイル名の大文字・小文字の表記揺れを検出する
+    "forceConsistentCasingInFileNames": true,
     
     "types": [
       "node"  // Node.js の型定義をグローバル型として読み込む
     ],
     
-    "noEmit": true,  // JS ファイルを生成せず型チェックのみ行う
-    "sourceMap": false,  // ソースマップを出力しない
-    "declaration": false,  // 型定義ファイル `.d.ts` を生成しない
+    // JS ファイルを生成せず型チェックのみ行う
+    "noEmit": true,
+    // ソースマップを出力しない
+    "sourceMap": false,
+    // 型定義ファイル `.d.ts` を生成しない
+    "declaration": false,
     
-    "noUncheckedIndexedAccess": true,  // 配列やオブジェクトに添字アクセスした時「存在しない可能性」を型に反映する
-    "exactOptionalPropertyTypes": true  // Optional Property と `undefined` を明確に区別する
+    // 配列やオブジェクトに添字アクセスした時「存在しない可能性」を型に反映する
+    "noUncheckedIndexedAccess": true,
+    // Optional Property と `undefined` を明確に区別する
+    "exactOptionalPropertyTypes": true
   }
 }
