@@ -5,7 +5,7 @@ Windows PC 上で iTunes ライブラリおよび MP3 ファイルを参照・�
 
 ## セットアップ
 
-Node.js v24.19.0 ([nvm-windows](https://github.com/nvm-windows/nvm) 経由で導入) にて確認。
+Node.js v24.18.0 ([nvm-windows](https://github.com/nvm-windows/nvm) 経由で導入) にて確認。
 
 - iTunes COM を Node.js から操作するため `winax` パッケージを使用している
     - `winax` は node-gyp を使うため、Python と Visual Studio Build Tools が必要になる
@@ -13,3 +13,23 @@ Node.js v24.19.0 ([nvm-windows](https://github.com/nvm-windows/nvm) 経由で導
     - [Build Tools For Visual Studio 2026](https://visualstudio.microsoft.com/ja/downloads/) をダウンロードし、「C++ によるデスクトップ開発」を選択してインストールする
 - Cloudflare 管理画面の[ユーザー API トークン](https://dash.cloudflare.com/profile/api-tokens)より、D1 API をコールするための API トークンを作成する
     - 権限 : 「アカウント」「D1」「編集」を指定する
+
+
+## 既知の問題
+
+Node.js v24.19.0 で実行したところ、`winax` が用いる Node.js の Native C++ 部分で次のようなエラーが発生する。
+
+- `node::RemoveEnvironmentCleanupHook()` `Assertion failed`
+
+このエラーは `try`・`catch` では検出できないものであり、Node.js 本体のバージョンに起因する。v24.18.0 にバージョンを下げて運用すればエラーは解消する。
+
+```bash
+$ nvm install 24.18.0
+$ nvm use 24.18.0
+$ npm rebuild winax --build-from-source
+```
+
+
+## iTunes COM
+
+- [iTunes COM Interface: IITFileOrCDTrack Interface Reference](https://documentation.help/iTunesCOM/interfaceIITFileOrCDTrack.html)

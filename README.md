@@ -55,7 +55,6 @@ Cloudflare Workers : Hono + React Router Web アプリ
 - 曲名
 - Persistent ID High
 - Persistent ID Low
-- ファイルパス
 - iTunes 上で編集されたコメント
 
 Web アプリ側からアーティスト・アルバム・曲名等を自由編集する機能は持たせない。
@@ -489,9 +488,8 @@ CREATE TABLE tracks (
   track_number  INTEGER,            -- iTunes ライブラリよりインポートしたトラック番号
   title         TEXT     NOT NULL,  -- iTunes ライブラリよりインポートした曲名
   
-  persistent_id_high  INTEGER,  -- iTunes ライブラリの Persistent ID High
-  persistent_id_low   INTEGER,  -- iTunes ライブラリの Persistent ID Low
-  full_path           TEXT,     -- iTunes ライブラリよりインポートした時点でのファイルフルパス
+  persistent_id_high  INTEGER  NOT NULL,  -- iTunes ライブラリの Persistent ID High
+  persistent_id_low   INTEGER  NOT NULL,  -- iTunes ライブラリの Persistent ID Low
   
   comment             TEXT,  -- Web アプリで記入したコメント
   imported_comment    TEXT,  -- iTunes ライブラリよりインポートしたコメント
