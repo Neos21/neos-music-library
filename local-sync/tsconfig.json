@@ -1,0 +1,31 @@
+{
+  "include": [  // 型チェック・ビルドの対象ファイル
+    "src/**/*.ts"
+  ],
+  "exclude": [  // 型チェック・ビルドの対象外ファイル
+    "node_modules"
+  ],
+  "compilerOptions": {
+    "target": "ES2022",  // 出力される JS の文法レベル
+    "module": "NodeNext",  // Node.js の ESM・CommonJS 判定ルールを使う
+    "moduleResolution": "NodeNext",  // `import` の解決方法を Node.js のルールに合わせる
+    
+    "strict": true,  // 主要な型チェックを有効にする
+    "esModuleInterop": true,  // CommonJS 形式のライブラリでも `import` できるようにする
+    "allowSyntheticDefaultImports": true,  // `default export` が型上存在しない CommonJS モジュールでも `default import` を許可する
+    
+    "skipLibCheck": true,  // `node_modules/` 内の `.d.ts` の型チェックを省略する
+    "forceConsistentCasingInFileNames": true,  // `import` のファイル名の大文字・小文字の表記揺れを検出する。
+    
+    "types": [
+      "node"  // Node.js の型定義をグローバル型として読み込む
+    ],
+    
+    "noEmit": true,  // JS ファイルを生成せず型チェックのみ行う
+    "sourceMap": false,  // ソースマップを出力しない
+    "declaration": false,  // 型定義ファイル `.d.ts` を生成しない
+    
+    "noUncheckedIndexedAccess": true,  // 配列やオブジェクトに添字アクセスした時「存在しない可能性」を型に反映する
+    "exactOptionalPropertyTypes": true  // Optional Property と `undefined` を明確に区別する
+  }
+}

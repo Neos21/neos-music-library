@@ -1,0 +1,34 @@
+{
+  "name": "neos-music-library-local-sync",
+  "description": "Neo's Music Library : Local Sync",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "tsc": "tsc",
+    "tsx": "tsx"
+  },
+  "author": "Neo <neos21@gmail.com> (https://neos21.net/)",
+  "license": "MIT",
+  "homepage": "https://github.com/Neos21/neos-music-library#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Neos21/neos-music-library.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Neos21/neos-music-library/issues"
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/Neos21"
+  },
+  "dependencies": {
+    "node-id3": "0.2.9",
+    "winax": "3.6.9"
+  },
+  "devDependencies": {
+    "@types/node": "26.5.0",
+    "tsx": "4.23.13",
+    "typescript": "7.0.2"
+  }
+}
