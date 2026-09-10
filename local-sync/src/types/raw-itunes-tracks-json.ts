@@ -25,8 +25,8 @@ export type RawItunesTracksJson = {
   raw_itunes_tracks: Array<RawItunesTrack>;
   /** 重複している曲の情報 */
   duplicates: Array<{ count: number; tracks: Array<RawItunesTrack>; }>;
-  /** バリデーションエラーの情報 */
-  warnings: Array<RawItunesTrack & { warnings: Array<string>; }>;
-  /** 実行中のエラー情報 */
+  /** バリデーションエラーなどワーニング情報 */
+  warnings: Array<Partial<RawItunesTrack> & { warnings?: Array<string>; warning?: string; }>;
+  /** エラー情報 */
   errors: Array<Partial<RawItunesTrack> & { error: string; }>;
 };
