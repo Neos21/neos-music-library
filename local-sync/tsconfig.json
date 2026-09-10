@@ -8,7 +8,7 @@
     "target": "ES2022",
     // Node.js の ESM・CommonJS 判定ルールを使う
     "module": "NodeNext",
-    // `import` の解決方法を Node.js のルールに合わせる
+    // `import` の解決方法を Node.js のルールに合わせる・`module`・`moduleResolution` と `package.json` の `type: module` 指定により、`import` 文は `.js` 拡張子付きで書く必要がある (`tsx` で実行する場合でもこのルール)
     "moduleResolution": "NodeNext",
     
     // 主要な型チェックを有効にする

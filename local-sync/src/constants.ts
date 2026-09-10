@@ -18,3 +18,5 @@ export const rawItunesTracksFileName = 'raw-itunes-tracks' as const;
 export const d1TracksFileName = 'd1-tracks' as const;
 /** Generate Queries スクリプトの出力ファイル名 */
 export const queriesFileName = 'queries' as const;
+/** Create Sync Plan スクリプトの出力ファイル名 */
+export const syncPlanFileName = 'sync-plan' as const;
