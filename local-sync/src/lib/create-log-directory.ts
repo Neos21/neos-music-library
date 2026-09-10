@@ -13,7 +13,7 @@ const dirName = path.dirname(fileName);  // このファイルが属するディ
 export const createLogDirectory = (): string => {
   // 本ファイルは `src/lib/` 配下にあるので `src/` と同階層に `logs/` ディレクトリを作成する
   const logDirectoryPath = path.resolve(dirName, '..', '..', 'logs');
-  // `recursive: true` 付きなので存在チェックしなくて良い
+  // `recursive : true` 付きなので存在チェックしなくて良い
   fs.mkdirSync(logDirectoryPath, { recursive: true });
   return logDirectoryPath;
 };

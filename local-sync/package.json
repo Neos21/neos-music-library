@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "export-itunes-library": "tsx ./src/export-itunes-library.ts",
+    "load-d1-tracks": "tsx ./src/load-d1-tracks.ts",
     "lint": "eslint . --fix && tsc",
     "eslint": "eslint",
     "tsc": "tsc",
@@ -24,6 +26,7 @@
     "url": "https://github.com/sponsors/Neos21"
   },
   "dependencies": {
+    "cloudflare": "7.1.0",
     "node-id3": "0.2.9",
     "winax": "3.6.9",
     "zod": "4.5.4"

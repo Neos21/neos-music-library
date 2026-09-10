@@ -480,7 +480,7 @@ Status 更新
 ### `tracks` テーブル
 
 ```sql
-CREATE TABLE tracks (
+CREATE TABLE tracks (  -- iTunes ライブラリをマスターとした楽曲情報
   id            INTEGER  PRIMARY KEY  AUTOINCREMENT,  -- D1 における永続的な楽曲 ID
   
   artist        TEXT     NOT NULL,  -- iTunes ライブラリよりインポートしたアーティスト名
@@ -536,7 +536,7 @@ delete_confirmed
 ギター・ベース・ボーカル・キーボード・ドラムの楽器を別テーブルにせず、共通テーブルに統合する。
 
 ```sql
-CREATE TABLE repertoires (
+CREATE TABLE repertoires (  -- レパートリー
   id        INTEGER  PRIMARY KEY  AUTOINCREMENT,  -- レパートリー ID
   
   track_id  INTEGER,  -- `tracks.id` での紐付けが可能な場合のみ値を入れる・紐付けがない場合は NULL
@@ -549,8 +549,8 @@ CREATE TABLE repertoires (
   proficiency  TEXT,            -- 習熟度
   memo         TEXT,            -- 自由メモ
   
-  created_at  TEXT  NOT NULL,  -- レコード初回作成日時
-  updated_at  TEXT  NOT NULL   -- レコード最終更新日時
+  created_at  TEXT  NOT NULL  DEFAULT CURRENT_TIMESTAMP,  -- レコード初回作成日時
+  updated_at  TEXT  NOT NULL  DEFAULT CURRENT_TIMESTAMP   -- レコード最終更新日時
 );
 ```
 
@@ -651,7 +651,7 @@ mastered
 1曲・1パートに複数 URL を持てるよう、URL は別テーブル化する。
 
 ```sql
-CREATE TABLE repertoire_links (
+CREATE TABLE repertoire_links (  -- レパートリーに紐付く URL
   id             INTEGER  PRIMARY KEY  AUTOINCREMENT,  -- ID
   repertoire_id  INTEGER  NOT NULL,                    -- 紐付けるレパートリー ID
   
@@ -660,8 +660,8 @@ CREATE TABLE repertoire_links (
   title  TEXT,            -- タイトル
   memo   TEXT,            -- 自由メモ
   
-  created_at  TEXT  NOT NULL,  -- レコード初回作成日時
-  updated_at  TEXT  NOT NULL   -- レコード最終更新日時
+  created_at  TEXT  NOT NULL  DEFAULT CURRENT_TIMESTAMP,  -- レコード初回作成日時
+  updated_at  TEXT  NOT NULL  DEFAULT CURRENT_TIMESTAMP   -- レコード最終更新日時
 );
 ```
 

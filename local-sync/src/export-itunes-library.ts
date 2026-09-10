@@ -1,39 +1,17 @@
 import winax from 'winax';
 
-import fs from 'node:fs';
-import path from 'node:path';
-
+import { extensionNameJson, rawItunesTracksFileName } from './constants.js';
 import { createLogDirectory } from './lib/create-log-directory.js';
-import { RawItunesTrack } from './types/raw-itunes-track.js';
-import { serializeError } from './lib/serialize-error.js';
 import { getJst } from './lib/get-jst.js';
+import { serializeError } from './lib/serialize-error.js';
+import { writeResultFile } from './lib/write-result-file.js';
 
-/** 本スクリプトが出力する結果ファイルの型定義 */
-type Result = {
-  /** 実行時刻 */
-  executed_at: string;
-  /** 実行結果 : 成功 (Warning・Error なし)・失敗 (後続処理の実行不可能) */
-  status: 'success' | 'failed';
-  /** 実行結果サマリ */
-  summary: {
-    /** `iTunes.LibraryPlaylist.Tracks` で取得した全トラック数 */
-    total_tracks: number;
-    /** `raw_itunes_tracks` として出力したトラック数 */
-    exported_tracks: number;
-    /** Podcast のトラックと判定して除外したトラック数 */
-    podcast_tracks: number;
-    /** バリデーションで Warning を確認したトラック数 */
-    warning_tracks: number;
-    /** 処理中にエラーが発生したトラック数 */
-    error_tracks: number;
-  };
-  /** iTunes から取得したトラック情報 */
-  raw_itunes_tracks: Array<RawItunesTrack>;
-  /** バリデーションエラーの情報 */
-  warnings: Array<RawItunesTrack & { warnings: Array<string>; }>;
-  /** 実行中のエラー情報 */
-  errors: Array<Partial<RawItunesTrack> & { error: string; }>;
-};
+import type { RawItunesTrack } from './types/raw-itunes-track.js';
+import type { RawItunesTracksJson } from './types/raw-itunes-tracks-json.js';
+
+// --------------------------------------------------
+// Export iTunes Library : iTunes ライブラリ全件を JSON ファイルに出力する
+// --------------------------------------------------
 
 /**
  * iTunes から取得した楽曲情報に対して、運用上の不正値を判定する
@@ -51,7 +29,7 @@ const validateItunesTrack = (rawItunesTrack: RawItunesTrack): Array<string> => {
   else if(rawItunesTrack.album === '') warnings.push('アルバム名が空文字です (想定外)');
   else if(rawItunesTrack.album !== String(rawItunesTrack.album).trim()) warnings.push('アルバム名の前後に空白文字が混ざっています');
   
-  // `track_number` は空欄時 `0` で出力され `null` になることはない
+  // `track_number` は空欄時 `0` で出力され `null` になることはないのでチェックなし
   
   if(rawItunesTrack.title == null) warnings.push('曲名が null です (iTunes 上では空欄にできないため想定外)');
   else if(rawItunesTrack.title === '') warnings.push('曲名が空文字です (想定外)');
@@ -61,44 +39,51 @@ const validateItunesTrack = (rawItunesTrack: RawItunesTrack): Array<string> => {
   
   if(rawItunesTrack.persistent_id_low == null) warnings.push('Persistent ID Low が null です・取得できていないようです (想定外)');
   
-  // `imported_comment` は空欄 (`null`) も全然あり得るので特にチェックなし
+  // `imported_comment` は空欄 (`null`) も全然あり得るのでチェックなし
   
   return warnings;
 };
 
-
 // Main
 // --------------------------------------------------
 
+console.log(`[${getJst()}] Export iTunes Library : Start`);
+
 const logDirectoryPath = createLogDirectory();
 
-const result: Result = {
-  executed_at: '',
+const result: RawItunesTracksJson = {
+  executed_at: getJst(),
   status: 'success',  // 終了後に状態を見て必要に応じて `failed` に切り替える
   summary: {
     total_tracks: 0,
     exported_tracks: 0,
     podcast_tracks: 0,
+    duplicates: 0,
     warning_tracks: 0,
     error_tracks: 0
   },
   raw_itunes_tracks: [],
+  duplicates: [],
   warnings: [],
   errors: []
 };
 
+let iTunes;
+let tracks;
 try {
-  console.log(`[${getJst()}] Export iTunes Library : Start`);
-  result.executed_at = getJst();
-  
-  const iTunes = new winax.Object('iTunes.Application');  // iTunes が起動していなかったら自動的に起動する
-  
-  const tracks = iTunes.LibraryPlaylist.Tracks;
+  iTunes = new winax.Object('iTunes.Application');  // iTunes が起動していなかったら自動的に起動する
+  tracks = iTunes.LibraryPlaylist.Tracks;
   result.summary.total_tracks = tracks.Count;
   console.log(`[${getJst()}] 総トラック数 : ${result.summary.total_tracks} 件`);
-  
+}
+catch(error) {
+  console.error(`[${getJst()}] [ERROR] iTunes COM の呼び出しでエラー発生`, error);
+  result.errors.push({ error: serializeError(error) });
+}
+
+if(iTunes != null && tracks != null) {
   for(let i = 1; i <= result.summary.total_tracks; i++) {  // Tracks は 1 始まり
-    if(i % 200 === 0) console.log(`[${getJst()}] ${i} 件目を処理中…`);  // テキトーに進捗表示
+    if(i % 1000 === 0) console.log(`[${getJst()}] ${i} 件目を処理中…`);  // テキトーに進捗表示
     
     // 1曲ごとの情報取得に失敗する場合は起こり得るようなので個別に `try`・`catch` する
     try {
@@ -131,42 +116,87 @@ try {
         result.summary.warning_tracks++;
       }
     }
-    catch(trackError) {
+    catch(error) {
       // ストリームなど解釈できなかったモノは無視する
-      console.error(`[${getJst()}] [ERROR] トラック情報取得中のエラー・次のトラック処理に移動します`, trackError);
-      result.errors.push({ error: serializeError(trackError) });
+      console.error(`[${getJst()}] [ERROR] トラック情報取得中のエラー・次のトラック処理に移動します`, error);
+      result.errors.push({ error: serializeError(error) });
       result.summary.error_tracks++;
     }
   }
-  
   console.log(`[${getJst()}] 全件エクスポート完了`);
+  
+  // アーティスト名・アルバム名・曲名の3つが一致する「重複曲」があるかチェックする
+  const duplicateMap = new Map<string, Array<RawItunesTrack>>();
+  for(const track of result.raw_itunes_tracks) {
+    const key = [track.artist || '【アーティスト名なし】', track.album || '【アルバム名なし】', track.title].join('\t');
+    const tracks = duplicateMap.get(key) ?? [];
+    tracks.push(track);
+    duplicateMap.set(key, tracks);
+  }
+  const duplicates = [...duplicateMap.values()].filter(tracks => tracks.length > 1);
+  result.summary.duplicates = duplicates.length;
+  result.duplicates = duplicates.map(duplicateTracks => ({ count: duplicateTracks.length, tracks: duplicateTracks }));
+}
+
+console.log(`[${getJst()}] 実行結果サマリ :`);
+console.log(`[${getJst()}]   総トラック数       : ${result.summary.total_tracks}`);
+console.log(`[${getJst()}]   エクスポートした数 : ${result.summary.exported_tracks}`);
+console.log(`[${getJst()}]   Podcast のため除外 : ${result.summary.podcast_tracks}`);
+console.log(`[${getJst()}]   重複の検出数       : ${result.summary.duplicates}`);
+console.log(`[${getJst()}]   エラーがあった数   : ${result.summary.error_tracks}`);
+console.log(`[${getJst()}]   Warning があった数 : ${result.summary.warning_tracks}`);
+
+// エラーではないが確認すべき状態
+if(result.summary.total_tracks === 0 && result.errors.length === 0) {  // 総トラック数が0件なのにエラーなしの場合 : iTunes COM 呼び出しは成功しているがライブラリが0件・やる意味がない
+  console.warn(`[${getJst()}] [WARN] iTunes ライブラリの総トラック数が0件でエラーが発生していませんでした・iTunes ライブラリがリセットされているか正しく認識されていない可能性があります`);
+}
+if(result.summary.exported_tracks === 0 && result.errors.length === 0) {  // エクスポートした数が0件なのにエラーなしの場合 : iTunes COM 呼び出しは成功しているがライブラリが0件相当・やる意味がない
+  console.warn(`[${getJst()}] [WARN] エクスポートした数が0件でエラーが発生していませんでした・iTunes ライブラリがリセットされているか正しく認識されていない可能性があります`);
+}
+if(result.summary.duplicates > 0 || result.duplicates.length > 0) {
+  console.warn(`[${getJst()}] [WARN] 重複判定された楽曲があります・内容を確認して iTunes ライブラリを修正し、本スクリプトを再実行してください`);
+}
+if(result.summary.warning_tracks > 0 || result.warnings.length > 0) {
+  console.warn(`[${getJst()}] [WARN] Warning 判定された楽曲があります・内容を確認して iTunes ライブラリを修正し、本スクリプトを再実行してください`);
+}
+// エラーがあるので失敗扱いとする
+if(result.errors.length > 0) {
+  result.status = 'failed';
+  console.error(`[${getJst()}] [ERROR] エラーが出力されています・内容を確認し、本スクリプトを再実行してください`);
+}
+// 実装誤りに起因すると思われる、想定されていない Result の状態不整合もチェックしておき、万が一あったら失敗扱いとする
+const totalCount = result.summary.exported_tracks + result.summary.podcast_tracks + result.summary.error_tracks;
+if(result.summary.total_tracks !== totalCount) {
+  result.status = 'failed';
+  console.error(`[${getJst()}] [ERROR] 総処理した曲数カウントが不一致です・実装誤りの恐れがあります : Total ${result.summary.total_tracks}・Exported + Podcast + Error Tracks ${totalCount}・差異 ${result.summary.total_tracks - totalCount}`);
+}
+if(result.summary.exported_tracks !== result.raw_itunes_tracks.length) {
+  result.status = 'failed';
+  console.error(`[${getJst()}] [ERROR] エクスポートした曲数カウントが不一致です・実装誤りの恐れがあります : Count ${result.summary.exported_tracks}・実数 ${result.raw_itunes_tracks.length}・差異 ${result.summary.exported_tracks - result.raw_itunes_tracks.length}`);
+}
+if(result.summary.duplicates !== result.duplicates.length) {
+  result.status = 'failed';
+  console.warn(`[${getJst()}] [ERROR] 重複判定したカウントが不一致です・実装誤りの恐れがあります : Count ${result.summary.duplicates}・実数 ${result.duplicates.length}・差異 ${result.summary.duplicates - result.duplicates.length}`);
+}
+if(result.summary.warning_tracks !== result.warnings.length) {
+  result.status = 'failed';
+  console.error(`[${getJst()}] [ERROR] Warning があった曲数カウントが不一致です・実装誤りの恐れがあります : Count ${result.summary.warning_tracks}・実数 ${result.warnings.length}・差異 ${result.summary.warning_tracks - result.warnings.length}`);
+}
+if(result.summary.error_tracks > 0 && result.summary.error_tracks !== result.errors.length) {  // `error_tracks` が計上されている場合は iTunes COM の起動時エラーは起きていないはずなのでこのようなチェック
+  result.status = 'failed';
+  console.error(`[${getJst()}] [ERROR] エラーがあった曲数カウントが不一致です・実装誤りの恐れがあります : Count ${result.summary.error_tracks}・実数 ${result.errors.length}・差異 ${result.summary.error_tracks - result.errors.length}`);
+}
+
+// 結果ファイルを出力する
+let data;
+try {
+  data = JSON.stringify(result, null, 2) + '\n';
 }
 catch(error) {
-  console.error(`[${getJst()}] [ERROR] 致命的なエラー発生・全件処理が完了していない恐れがあります`, error);
-  result.errors.push({ error: serializeError(error) });
+  console.error(`[${getJst()}] [ERROR] 結果オブジェクトの JSON 文字列化に失敗しました・結果ファイルが出力できません`, error);
 }
-finally {
-  console.log(`[${getJst()}] 実行結果サマリ : `);
-  console.log(`[${getJst()}]   総トラック数       : ${result.summary.total_tracks}`);
-  console.log(`[${getJst()}]   エクスポートした数 : ${result.summary.exported_tracks}`);
-  console.log(`[${getJst()}]   Podcast のため除外 : ${result.summary.podcast_tracks}`);
-  console.log(`[${getJst()}]   エラーがあった楽曲 : ${result.summary.error_tracks}`);
-  console.log(`[${getJst()}]   Warning があった数 : ${result.summary.warning_tracks}`);
-  
-  if(result.warnings.length > 0) {
-    console.warn(`[${getJst()}] [WARN] Warning 判定された楽曲があります・内容を確認して iTunes ライブラリを修正し、本スクリプトを再実行してください`);
-  }
-  if(result.errors.length > 0) {
-    result.status = 'failed';
-    console.error(`[${getJst()}] [ERROR] エラーが出力されています・内容を確認してください`);
-  }
-  // TODO : `summary` の数値と実際の配列数に差分がないか念のためチェック必要か？
-  // TODO : Total と Exported + Podcast + Error Tracks の数は一致してるはず・不一致なら何かおかしい (Warning は含めない)
-  
-  // TODO : アーティスト名・アルバム名・楽曲名の3つが同じ曲 = 重複曲と判定できるが、チェックすべきか？
-  
-  // TODO : 上書きになっちゃうので要調整・`try`・`catch` も要るかな
-  fs.writeFileSync(path.resolve(logDirectoryPath, 'raw-itunes-tracks.json'), JSON.stringify(result, null, 2) + '\n', 'utf-8');
-  
-  console.log(`[${getJst()}] Export iTunes Library : Finished`);
+if(data != null) {
+  writeResultFile(logDirectoryPath, rawItunesTracksFileName, extensionNameJson, result.executed_at, data);
 }
+
+console.log(`[${getJst()}] Export iTunes Library : Finished`);
