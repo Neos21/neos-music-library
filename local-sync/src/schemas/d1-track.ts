@@ -6,11 +6,11 @@ export const d1TrackSchema = z.object({
   id: z.number(),
   
   /** アーティスト名 */
-  artist: z.string(),
+  artist: z.string().nullable(),
   /** アルバム名 */
-  album: z.string(),
+  album: z.string().nullable(),
   /** トラック番号 */
-  track_number: z.number().nullable(),
+  track_number: z.number(),
   /** 曲名 */
   title: z.string(),
   
@@ -19,7 +19,7 @@ export const d1TrackSchema = z.object({
   /** Persistent ID Low */
   persistent_id_low: z.number(),
   
-  /** Web アプリで記入したコメント */
+  /** Web アプリで入力されたコメント */
   comment: z.string().nullable(),
   /** iTunes ライブラリよりインポートしたコメント */
   imported_comment: z.string().nullable()

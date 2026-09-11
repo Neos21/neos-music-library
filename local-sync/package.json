@@ -4,8 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "export-itunes-library": "tsx ./src/export-itunes-library.ts",
+    "export-itunes": "tsx ./src/export-itunes.ts",
     "load-d1-tracks": "tsx ./src/load-d1-tracks.ts",
+    "create-sync-plan": "tsx ./src/create-sync-plan.ts",
     "lint": "eslint . --fix && tsc",
     "eslint": "eslint",
     "tsc": "tsc",

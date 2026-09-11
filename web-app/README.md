@@ -29,7 +29,7 @@ React Router (SPA モード) + Hono + Cloudflare Workers で構成された Web 
 - DB : Cloudflare D1 (SQLite)
 - Linter・Formatter : ESLint
     - セットアップで用いるため `globals` パッケージを導入している
-    - 動作のために `jiti` パッケージが必要なため `package.json` に記載アリ
+    - 動作に `jiti` パッケージが必要なため `package.json` に記載アリ
 
 
 ## 開発の開始
@@ -52,21 +52,17 @@ $ npm run build
 $ npm run preview
 ```
 
+### Cloudflare Workers へのデプロイ
 
-## Cloudflare Workers へのデプロイ
-
-本番デプロイは開発者が手動で行う。AI エージェントは実行しない。
+本番デプロイは開発者が手動で行う。AI は実行しない。
 
 ```bash
 $ npm run deploy
 ```
 
+### D1 データベース操作
 
-## D1 データベース操作
-
-D1 の作成、SQL 実行、マイグレーションは開発者が手動で行う。AI エージェントはローカル・本番のどちらに対しても実行してはならない。
-
-`./schema.sql` は任意の SQL ファイルを表す開発者向けのコマンド例であり、同名ファイルを本リポジトリに配置する仕様ではない。AI エージェントはファイルの欠落として扱わず、以下のコマンド例を実行してはならない。
+D1 の作成、SQL 実行、マイグレーションは開発者が手動で行う。AI はローカル・本番のどちらに対しても実行してはならない。
 
 ```bash
 # D1 データベースを作成する
@@ -76,7 +72,7 @@ $ wrangler d1 create music-library
 $ wrangler d1 execute music-library --local  --command='SELECT * FROM 【テーブル名】'
 $ wrangler d1 execute music-library --remote --command='SELECT * FROM 【テーブル名】'
 
-# 任意の SQL ファイルを実行するコマンド例
+# 任意の SQL ファイルを実行するコマンド例 (`schema.sql` は任意の SQL ファイルを表す例であり、同名ファイルを欠落として扱わなくて良い)
 $ wrangler d1 execute music-library --local  --file='./schema.sql'
 $ wrangler d1 execute music-library --remote --file='./schema.sql'
 
@@ -96,12 +92,11 @@ $ wrangler d1 execute music-library --remote --command='SELECT * FROM sqlite_mas
 $ wrangler d1 execute music-library --remote --command='SELECT * FROM 【テーブル名】' --json | jq --compact-output '.[].results[]' > ./migrations/backup.jsonl
 ```
 
-
-## シークレット管理
+### シークレット管理
 
 - ローカル開発時は Git 管理対象外の `.dev.vars` が自動的に参照される
 - Binding の型は `server/types/hono-bindings.ts` に定義する
-- 本番シークレットの登録は開発者が手動で行い、AI エージェントは実行しない
+- 本番シークレットの登録は開発者が手動で行い、AI は実行しない
 
 ```bash
 $ echo 'EXAMPLE_VALUE' | wrangler secret put ADMIN_PASSWORD   --name music-library
@@ -111,21 +106,16 @@ $ echo 'EXAMPLE_VALUE' | wrangler secret put ADMIN_JWT_SECRET --name music-libra
 
 ## アーキテクチャ
 
-本プロジェクトのシステム構成、依存方向、各レイヤーの責務を示す。
+本プロジェクトのシステム構成、依存方向を示す。
 
 ### システム構成
 
-```text
-Browser
-  └ React Router SPA
-     └ `/api` への HTTP リクエスト
-        └ Cloudflare Workers + Hono
-           └ Cloudflare D1 (SQLite)
+```
+Browser → React Router SPA → `/api` への HTTP リクエスト → Cloudflare Workers + Hono → Cloudflare D1 (SQLite)
 ```
 
 - React Router を SPA モードで利用し、画面遷移とログイン後の共通レイアウトを構成する
 - Hono の `/api` 配下に認証・各リソースのルートを登録する
-- Cloudflare Workers の Binding から D1 と認証用環境変数を参照する
 
 ### ディレクトリの責務
 
@@ -144,27 +134,46 @@ Browser
 
 ### 依存方向
 
-```text
+`shared/` は `client/`・`server/` に依存しない。
+
+```
 client ┐
        ├─> shared
 server ┘
 
 server/routes   -> server/repositories (単一テーブルの単純な CRUD)
 server/routes   -> server/services     (複合 Read Model・ユースケース)
-server/services -> server/repositories または D1
+server/services -> server/repositories
 server/services -> shared/services
 ```
 
-- `shared/` は `client/`・`server/` に依存しない
-- Route は HTTP の責務に限定し、DB クエリやビジネスロジックを直接持たない
-- Repository は単一テーブルの永続化を抽象化し、画面都合の複合 `JOIN` を持たない
-- 複数テーブルを横断した Read Model は、用途名を持つ Service が D1 から直接構築する
 
-### レイヤーの境界
+## テーブル定義
 
-`shared/` には `client/`・`server/` 間で共有する契約と処理を置き、サーバ内部だけで扱う DB 取得直後の表現は `server/` に閉じる。複合 Read Model は Service が公開可能なモデルに変換してから Route に渡す。
+[create-tables.sql](./migrations/create-tables.sql) を正とする。
 
-型の分類と配置に関する実装ルールは [Shared Rules](../docs/agent-rules/shared.md)、サーバ各層の実装ルールは [Backend Rules](../docs/agent-rules/backend.md) を参照のこと。
+### `tracks` テーブル
+
+iTunes ライブラリの情報、および Web アプリ上で入力可能な「コメント」を管理する。
+
+### `repertoires` テーブル
+
+レパートリーは iTunes ライブラリ上の楽曲情報の存在 (`tracks` テーブル) とは独立して管理する。
+
+- 以前ギターをコピーしたが MP3 ファイルは削除済みで iTunes ライブラリにない楽曲
+- MP3 ファイルは持っていないが今後コピーしたい楽曲
+
+などを表現できるようにする。
+
+ギター・ベース・ボーカル・キーボード・ドラムといった楽器を別テーブルにせず、`part` カラムで識別して単一のテーブルにて表現する。
+
+`track_id` が存在する場合は、表示時に `tracks` テーブルの楽曲情報を優先する。ただし `track_id` が存在する場合でも、メタデータは `repertoires` テーブルに保存しておく。これは登録時のスナップショット、フォールバック情報として利用する。
+
+iTunes から楽曲が削除された場合でも `repertoires` テーブルの情報は残す。必要に応じて同期スクリプトが `track_id` を `NULL` に UPDATE しておき、後日対応する楽曲を iTunes に追加した場合紐付けられるようにする。
+
+### `repertoire_links` テーブル
+
+1楽曲・1パートに複数 URL を持てるよう、URL は別テーブル化する。
 
 
 ## ページ一覧
@@ -175,28 +184,7 @@ server/services -> shared/services
 | `/home` | ログイン後のホーム。共通サイドメニューはこのページへの遷移後に初めて表示する |
 
 
-## API
-
-Hono で提供する `/api` 配下の API 契約を示す。各項目の厳密な型とバリデーションは、対応する `shared/types/` と `shared/schemas/` を正とする。
-
-### 共通仕様
-
-- 管理用 API コール時は JWT 認証を必要とする
-- 正常レスポンスはトップレベルを `result` のみとする
-- エラーレスポンスはトップレベルを `error` のみとする
-- JSON Body は構文不正と Schema 不正を区別せず、クライアント入力エラーとして 400 を返す
-- URL の ID は整数に変換できない場合に 400 を返す
-- 想定される Service エラーは `Result` 型で表す
-
-```json
-{ "result": {} }
-```
-
-```json
-{ "error": "エラーメッセージ" }
-```
-
-### API エンドポイント一覧
+## API エンドポイント一覧
 
 | リソース | メソッド | パス                | 用途                                |
 |----------|----------|---------------------|-------------------------------------|
@@ -210,11 +198,7 @@ Hono で提供する `/api` 配下の API 契約を示す。各項目の厳密�
 
 ## メンテナンス
 
-開発者向けの保守メモを示す。ここに記載した判断は依存関係やツールの状況に応じて見直す。
-
-### 生成ファイル
-
-`$ npm run build` は `$ wrangler types` と React Router の型生成を実行する。生成後は `worker-configuration.d.ts` などの差分を確認し、設定変更に由来する必要な差分だけを残す。
+開発者向けの保守メモを示す。
 
 ### 既知の警告
 

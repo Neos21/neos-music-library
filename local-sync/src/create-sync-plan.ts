@@ -1,120 +1,389 @@
-import { extensionNameJson, syncPlanFileName } from './constants.js';
+import fs from 'node:fs';
+import path from 'node:path';
+
+import { commentConflictsFileName, d1TracksFileName, extensionNameJson, itunesTracksFileName, syncPlanFileName } from './constants.js';
 import { createLogDirectory } from './lib/create-log-directory.js';
-import { getJst } from './lib/get-jst.js';
+import { jst } from './lib/jst.js';
+import { serializeError } from './lib/serialize-error.js';
 import { writeResultFile } from './lib/write-result-file.js';
+import { D1Track } from './schemas/d1-track.js';
+import { D1TracksResult } from './types/d1-tracks-result.js';
+import { ItunesTrack } from './types/itunes-track.js';
+import { ItunesTracksResult } from './types/itunes-tracks-result.js';
+import { Result } from './types/result.js';
+import { CommentConflictsResult, CommentDecision, MetadataDecision, SyncPlanResult } from './types/sync-plan-result.js';
 
 // --------------------------------------------------
-// Create Sync Plan : iTunes ライブラリと D1 のデータを突合して同期計画を組み立てる
+// Create Sync Plan : iTunes と D1 を突合して同期計画を組み立てる
 // --------------------------------------------------
 
-console.log(`[${getJst()}] Create Sync Plan : Start`);
+console.log(`[${jst()}] Create Sync Plan : Start`);
 
 const logDirectoryPath = createLogDirectory();
 
-const jstNow = getJst();
+const jstNow = jst();
 
-const result = {
+const result: SyncPlanResult = {
   executed_at: jstNow,
-  status: 'failed',  // 成功時のみ `success` に切り替える
+  status: 'failed',
   summary: {
     source_counts: {
       itunes_tracks: 0,
       d1_tracks: 0
     },
-    reconciliation: {  // 分類
-      inserts: 0,  // iTunes にあって D1 にない曲数
-      deletes: 0,  // D1 にあって iTunes にない曲数
-      matched: 0   // 両方にデータがある曲数
+    reconciliation: {
+      inserts: 0,
+      deletes: 0,
+      matched: 0
     },
-    matched_tracks: {  // 両方にデータがある曲の差分内容
-      // メタデータ・コメントともに差分なし
+    matched_tracks: {
       fully_unchanged: 0,
-      // メタデータの差分有無
+      
       metadata_unchanged: 0,
-      metadata_updates: 0,  // D1 に UPDATE を入れる件数
-      // コメントの差分
+      metadata_update_d1: 0,
+      
       comment_unchanged: 0,
-      comment_updates: 0,  // D1 に UPDATE を入れる件数
-      comment_sync_to_local: 0,  // D1 の内容を MP3 に反映させるべき件数
-      comment_conflicts: 0  // 手動解決が必要なコンフリクト件数
+      comment_update_itunes: 0,
+      comment_update_d1: 0,
+      comment_conflicts: 0
     },
-    operations: {  // 必要な操作数
+    operations: {
       insert_d1: 0,
       delete_d1: 0,
       update_metadata_d1: 0,
-      update_comment_d1: 0,
-      sync_comment_local: 0
+      update_comment_itunes: 0,
+      update_comment_d1: 0
     }
   },
   inserts: [],
   deletes: [],
-  matched: [
-    // {
-    //   track_id, persistent_id_high, persistent_id_low,
-    //   metadata_decision: {
-    //     action: 'unchanged' OR 'update_d1',
-    //     changes: UPDATE をかける項目の Key Value
-    //   },
-    //   comment_decision: {
-    //     action: 'unchanged' OR 'update_d1' OR 'sync_to_local' OR 'conflict',
-    //     base (D1 から取得した before iTunes), web (D1 から取得した Web での入力値), mp3 (iTunes から取得した MP3 の値)
-    //   }
-    // }
-  ],
+  matched: [],
   errors: []
 };
 
-const commentConflictsResult = {
+const commentConflictsResult: CommentConflictsResult = {
   executed_at: jstNow,
-  status: 'has_conflicts',  // OR 'no_conflicts'・人間が作業終了した時に 'resolved' などにはしなくてもいいかな？resolution.value が null でなければ、というチェックをすれば良い
+  status: 'no_conflicts',
   summary: {
-    conflicts: 0  // 念のための件数チェック用・手動操作中に行を消しちゃったりして不整合が出た場合の検出に
+    conflicts: 0
   },
-  conflicts: [
-    // {
-    //   track_id, persistent_id_high, persistent_id_low,
-    //   base, web, mp3,
-    //   resolution?: { value: コンフリクト時に採用する値 (初期値は null), source: 'd1' OR 'local' OR 'manual' }  `source = d1` なら D1 の値を採用した扱いとして MP3 編集。`local` なら MP3 の値を採用した扱いとして D1 に UPDATE。`manual` なら全く別の値を採用した扱いとして両方に反映、とする
-    // }
-  ]
+  conflicts: []
 };
 
-/** 結果ファイルを出力して終了メッセージを表示する */
+/** エラーログを出力しながら結果オブジェクトに追記する */
+const errorLog = (message: string, error?: unknown): void => {
+  if(error == null) {
+    console.error(`[${jst()}] [ERROR] ${message}`);
+    result.errors.push({ error: message });
+  }
+  else {
+    console.error(`[${jst()}] [ERROR] ${message}`, error);
+    result.errors.push({ error: `${message} : ${serializeError(error)}` });
+  }
+};
+
+/** 結果ファイルを出力する */
 const writeResult = (): void => {
   let data;
   try {
     data = JSON.stringify(result, null, 2) + '\n';
   }
   catch(error) {
-    console.error(`[${getJst()}] [ERROR] 結果オブジェクトの JSON 文字列化に失敗しました・結果ファイルが出力できません`, error);
+    console.error(`[${jst()}] [ERROR] 結果オブジェクトの JSON 文字列化に失敗しました・結果ファイルが出力できません`, error);
   }
   if(data != null) {
     writeResultFile(logDirectoryPath, syncPlanFileName, extensionNameJson, result.executed_at, data);
   }
   
-  console.log(`[${getJst()}] Create Sync Plan : Finished`);
+  let commentConflictsResultData;
+  try {
+    commentConflictsResultData = JSON.stringify(commentConflictsResult, null, 2) + '\n';
+  }
+  catch(error) {
+    console.error(`[${jst()}] [ERROR] コメントコンフリクト修正用オブジェクトの JSON 文字列化に失敗しました・コメントコンフリクト修正用ファイルが出力できません`, error);
+  }
+  if(commentConflictsResultData != null) {
+    writeResultFile(logDirectoryPath, commentConflictsFileName, extensionNameJson, commentConflictsResult.executed_at, commentConflictsResultData);
+  }
 };
 
-(async () => {
-  // raw-itunes-tracks.json 読み込み → エラーなしを確認 → PID をキーにした Map に詰め替えつつノーマライズ
-  // d1-tracks.json 読み込み → エラーなしを確認 → PID をキーにした Map に詰め替え
+/** Persistent ID を結合して Map 用のキー文字列を作る */
+const createPersistentIdKey = (persistentIdHigh: number, persistentIdLow: number): string => `${persistentIdHigh}:${persistentIdLow}`;
+
+/** iTunes ライブラリ情報ファイルを取得して Persistent ID をキーにした Map で返す */
+const loadRawItunesTracks = (): Result<Map<string, ItunesTrack>> => {
+  try {
+    const text = fs.readFileSync(path.resolve(logDirectoryPath, itunesTracksFileName + extensionNameJson), 'utf-8');
+    const json: ItunesTracksResult = JSON.parse(text);
+    
+    // 最低限の続行不可能なエラーがないことをチェックする
+    if(json.status === 'failed') {
+      errorLog('iTunes ライブラリ情報のファイルが `failed` 状態でした・続行不可能と判断し処理を中断します');
+      return { error: 'Failed To Load Raw iTunes Tracks' };
+    }
+    if(json.errors.length > 0) {
+      errorLog('iTunes ライブラリ情報のファイルに `errors` が出力されていました・続行不可能と判断し処理を中断します');
+      return { error: 'Failed To Load Raw iTunes Tracks' };
+    }
+    
+    const itunesTracks = new Map(json.itunes_tracks.map(itunesTrack => [createPersistentIdKey(itunesTrack.persistent_id_high, itunesTrack.persistent_id_low), itunesTrack]));
+    if(json.itunes_tracks.length !== itunesTracks.size) {
+      errorLog('iTunes ライブラリ情報のファイルに Persistent ID が重複している項目が出力されているようです・データ不整合の可能性があります・続行不可能と判断し処理を中断します');
+      return { error: 'Failed To Load Raw iTunes Tracks' };
+    }
+    
+    return { result: itunesTracks };
+  }
+  catch(error) {
+    errorLog('iTunes ライブラリ情報を読み込めませんでした', error);
+    return { error: 'Failed To Load Raw iTunes Tracks' };
+  }
+};
+
+/** D1 楽曲情報ファイルを取得して Persistent ID をキーにした Map で返す */
+const loadD1Tracks = (): Result<Map<string, D1Track>> => {
+  try {
+    const text = fs.readFileSync(path.resolve(logDirectoryPath, d1TracksFileName + extensionNameJson), 'utf-8');
+    const json: D1TracksResult = JSON.parse(text);
+    
+    // 最低限の続行不可能なエラーがないことをチェックする
+    if(json.status === 'failed') {
+      errorLog('D1 楽曲情報のファイルが `failed` 状態でした・続行不可能と判断し処理を中断します');
+      return { error: 'Failed To Load D1 Tracks' };
+    }
+    if(json.errors.length > 0) {
+      errorLog('D1 楽曲情報のファイルに `errors` が出力されていました・続行不可能と判断し処理を中断します');
+      return { error: 'Failed To Load D1 Tracks' };
+    }
+    if(json.invalid_tracks.length > 0) {
+      errorLog('D1 楽曲情報のファイルに `invalid_tracks` が出力されていました・続行不可能と判断し処理を中断します');
+      return { error: 'Failed To Load D1 Tracks' };
+    }
+    
+    const d1Tracks = new Map(json.valid_tracks.map(d1Track => [createPersistentIdKey(d1Track.persistent_id_high, d1Track.persistent_id_low), d1Track]));
+    if(json.valid_tracks.length !== d1Tracks.size) {
+      errorLog('D1 楽曲情報のファイルに Persistent ID が重複している項目が出力されているようです・データ不整合の可能性があります・続行不可能と判断し処理を中断します');
+      return { error: 'Failed To Load D1 Tracks' };
+    }
+    
+    return { result: d1Tracks };
+  }
+  catch(error) {
+    errorLog('D1 楽曲情報を読み込めませんでした', error);
+    return { error: 'Failed To Load D1 Tracks' };
+  }
+};
+
+/** D1 の Persistent ID をキーに iTunes 側を走査 → iTunes 側に該当する Persistent ID がない楽曲は `deletes` に追加する */
+const detectDeletes = (d1Tracks: Map<string, D1Track>, itunesTracks: Map<string, ItunesTrack>): void => {
+  for(const [persistentIdKey, d1Track] of d1Tracks) {
+    const rawItunesTrack = itunesTracks.get(persistentIdKey);
+    if(rawItunesTrack == null) result.deletes.push(d1Track);
+  }
+};
+
+/** メタデータの差分情報を組み立てる */
+const createMetadataDecision = (itunesTrack: ItunesTrack, d1Track: D1Track): MetadataDecision => {
+  const changes: Record<string, string | number | null> = {};
+  if(itunesTrack.album        !== d1Track.album       ) changes['album'       ] = itunesTrack.album;
+  if(itunesTrack.artist       !== d1Track.artist      ) changes['artist'      ] = itunesTrack.artist;
+  if(itunesTrack.track_number !== d1Track.track_number) changes['track_number'] = itunesTrack.track_number;
+  if(itunesTrack.title        !== d1Track.title       ) changes['title'       ] = itunesTrack.title;
   
-  // D1 の PID をキーに iTunes 側を走査 → iTunes 側に該当する PID がない曲は deletes に追加
+  if(Object.keys(changes).length === 0) {
+    return { action: 'unchanged' };
+  }
+  else {
+    return { action: 'update_d1', changes: changes };
+  }
+};
+
+/** コメントの差分情報を組み立てる */
+const createCommentDecision = (itunesTrack: ItunesTrack, d1Track: D1Track): CommentDecision => {
+  /** D1 より取得した旧 iTunes のコメント */
+  const importedComment = d1Track.imported_comment;
+  /** D1 より取得したコメント */
+  const d1Comment       = d1Track.comment;
+  /** iTunes ライブラリより取得した現在のコメント */
+  const itunesComment   = itunesTrack.imported_comment;
   
-  // iTunes 側の PID をキーに D1 側を走査
-  // - D1 側に該当する PID がない → inserts に追加
-  // - 両者で PID が合致
-  //   - メタデータの差分チェック → 差分があれば metadata_updates としてマーク
-  //   - コメントの差分チェック (3Way)
-  //     - → D1 側に反映が必要と判断したら comment_updates としてマーク
-  //     - → iTunes 側に反映が必要と判断したら comment_sync_to_local としてマーク
-  //     - → コンフリクトと判断したら comment_conflicts としてマーク
+  // 差分なし
+  if(importedComment === d1Comment && d1Comment === itunesComment) return { action: 'unchanged' };
   
-  // inserts・deletes・matched 配列が出揃うので summary を集計 → 結果 JSON ファイルを書き出し (こっちは機械判定結果のみとし人間が書き換えないファイル)
-  // コメントのコンフリクト修正用ファイルを書き出し (`resolution` プロパティを設けておいて人間が追記する)
-  // スクリプト終了
+  // D1 の `comment` のみ変更を確認 → iTunes への反映と D1 の `imported_comment` の UPDATE が必要
+  if(importedComment === itunesComment && importedComment !== d1Comment) return {
+    action          : 'update_itunes',
+    imported_comment: importedComment,
+    d1_comment     : d1Comment,
+    itunes_comment  : itunesComment
+  };
   
-  // → コンフリクト修正用ファイルのみ人間が判断して resolution プロパティの value と source を書き換え。コンフリクトがない場合も空配列のファイルとして存在していることを後続スクリプトの前提にする
-  // → 先に Sync To Local スクリプトを実行。結果 JSON から機械的に comment_sync_to_local できるものと、コンフリクト修正用ファイルを参照して分かるものとを MP3 に反映する
-  // → その後、Sync To D1 スクリプトを実行。結果 JSON から INSERT・DELETE・UPDATE を生成・実行。コンフリクト修正用ファイルを参照して分かるものを UPDATE として実行する
+  // iTunes のみ変更を確認 → D1 への UPDATE が必要
+  if(importedComment === d1Comment && importedComment !== itunesComment) return {
+    action          : 'update_d1',
+    imported_comment: importedComment,
+    d1_comment      : d1Comment,
+    itunes_comment  : itunesComment
+  };
+  
+  // D1 の `comment` と iTunes の変更があったが同値だった → D1 の `imported_comment` への UPDATE が必要
+  if(d1Comment === itunesComment && importedComment !== d1Comment) return {
+    action          : 'update_d1',
+    imported_comment: importedComment,
+    d1_comment      : d1Comment,
+    itunes_comment  : itunesComment
+  };
+  
+  // D1 と iTunes の変更があり3つが異なる値だった → コンフリクト・自動解決できないため人間の判断に委ねる
+  if(importedComment !== d1Comment && d1Comment !== itunesComment && importedComment !== itunesComment) return {
+    action          : 'conflict',
+    imported_comment: importedComment,
+    d1_comment      : d1Comment,
+    itunes_comment  : itunesComment
+  };
+  
+  // ココまでで全パターンチェックできているはずなので、ココに到達したら実装誤り
+  const report = {
+    d1_track_id       : d1Track.id,
+    persistent_id_high: itunesTrack.persistent_id_high,
+    persistent_id_low : itunesTrack.persistent_id_low,
+    imported_comment  : importedComment,
+    d1_comment        : d1Comment,
+    itunes_comment    : itunesComment
+  };
+  const errorMessage = `\`createCommentDecision\` で想定外の組み合わせが発生しました・実装誤りの恐れがあります : ${JSON.stringify(report)}`;
+  errorLog(errorMessage);
+  throw new Error(errorMessage);
+};
+
+/** iTunes の Persistent ID をキーに D1 側を走査 → D1 側に該当する Persistent ID がない楽曲は `inserts` に追加する・合致する楽曲は差分を確認しながら `matched` に追加する */
+const detectInsertsAndMatched = (itunesTracks: Map<string, ItunesTrack>, d1Tracks: Map<string, D1Track>): void => {
+  for(const [persistentIdKey, itunesTrack] of itunesTracks) {
+    const d1Track = d1Tracks.get(persistentIdKey);
+    
+    // `inserts` 対象
+    if(d1Track == null) {
+      result.inserts.push(itunesTrack);
+      continue;
+    }
+    
+    // `matched` 対象・差分を確認して格納していく
+    const metadataDecision = createMetadataDecision(itunesTrack, d1Track);
+    const commentDecision = createCommentDecision(itunesTrack, d1Track);  // 条件分岐に実装誤りがあった場合はエラーを `throw` する
+    result.matched.push({
+      d1_track_id       : d1Track.id,
+      persistent_id_high: itunesTrack.persistent_id_high,
+      persistent_id_low : itunesTrack.persistent_id_low,
+      metadata_decision : metadataDecision,
+      comment_decision  : commentDecision
+    });
+  }
+};
+
+/** メイン関数 */
+const main = (): void => {
+  // ファイルを読み込む
+  const itunesTracksResult = loadRawItunesTracks();
+  if(itunesTracksResult.error != null) return;
+  const itunesTracks = itunesTracksResult.result;
+  
+  const d1TracksResult = loadD1Tracks();
+  if(d1TracksResult.error != null) return;
+  const d1Tracks = d1TracksResult.result;
+  
+  // 差分を集計する
+  detectDeletes(d1Tracks, itunesTracks);
+  detectInsertsAndMatched(itunesTracks, d1Tracks);  // 条件分岐に実装誤りがあった場合はエラーを `throw` する
+  
+  // サマリを集計する
+  const conflicts = result.matched.filter(matched => matched.comment_decision.action === 'conflict');
+  result.summary.source_counts.itunes_tracks = itunesTracks.size;
+  result.summary.source_counts.d1_tracks     = d1Tracks.size;
+  result.summary.reconciliation.inserts = result.inserts.length;
+  result.summary.reconciliation.deletes = result.deletes.length;
+  result.summary.reconciliation.matched = result.matched.length;
+  result.summary.matched_tracks.fully_unchanged       = result.matched.filter(matched => matched.metadata_decision.action === 'unchanged' && matched.comment_decision.action === 'unchanged').length;
+  result.summary.matched_tracks.metadata_unchanged    = result.matched.filter(matched => matched.metadata_decision.action === 'unchanged').length;
+  result.summary.matched_tracks.metadata_update_d1    = result.matched.filter(matched => matched.metadata_decision.action === 'update_d1').length;
+  result.summary.matched_tracks.comment_unchanged     = result.matched.filter(matched => matched.comment_decision.action === 'unchanged').length;
+  result.summary.matched_tracks.comment_update_itunes = result.matched.filter(matched => matched.comment_decision.action === 'update_itunes').length;
+  result.summary.matched_tracks.comment_update_d1     = result.matched.filter(matched => matched.comment_decision.action === 'update_d1').length;
+  result.summary.matched_tracks.comment_conflicts     = conflicts.length;
+  result.summary.operations.insert_d1                  = result.summary.reconciliation.inserts;
+  result.summary.operations.delete_d1                  = result.summary.reconciliation.deletes;
+  result.summary.operations.update_metadata_d1         = result.summary.matched_tracks.metadata_update_d1;
+  result.summary.operations.update_comment_itunes      = result.summary.matched_tracks.comment_update_itunes;
+  result.summary.operations.update_comment_d1          = result.summary.matched_tracks.comment_update_d1;
+  
+  // コメントコンフリクト修正用情報を書き出す
+  commentConflictsResult.status            = conflicts.length === 0 ? 'no_conflicts' : 'has_conflicts';
+  commentConflictsResult.summary.conflicts = conflicts.length;
+  commentConflictsResult.conflicts         = conflicts.map(conflict => ({
+    d1_track_id       : conflict.d1_track_id,
+    persistent_id_high: conflict.persistent_id_high,
+    persistent_id_low : conflict.persistent_id_low,
+    imported_comment  : conflict.comment_decision.imported_comment!,
+    d1_comment        : conflict.comment_decision.d1_comment!,
+    itunes_comment    : conflict.comment_decision.itunes_comment!,
+    resolution        : {
+      value : null,
+      source: null
+    }
+  }));
+  
+  console.log(`[${jst()}] 実行結果サマリ :`);
+  console.log(`[${jst()}]   iTunes 総楽曲数                 : ${result.summary.source_counts.itunes_tracks}`);
+  console.log(`[${jst()}]   D1 総楽曲数                     : ${result.summary.source_counts.d1_tracks}`);
+  console.log(`[${jst()}]   差分なしの楽曲数                : ${result.summary.matched_tracks.fully_unchanged}`);
+  console.log(`[${jst()}]   D1 への INSERT 対象数           : ${result.summary.operations.insert_d1}`);
+  console.log(`[${jst()}]   D1 への DELETE 対象数           : ${result.summary.operations.delete_d1}`);
+  console.log(`[${jst()}]   D1 へのメタデータ UPDATE 対象数 : ${result.summary.operations.update_metadata_d1}`);
+  console.log(`[${jst()}]   iTunes へのコメント反映対象数   : ${result.summary.operations.update_comment_itunes}`);
+  console.log(`[${jst()}]   D1 へのコメント UPDATE 対象数   : ${result.summary.operations.update_comment_d1}`);
+  console.log(`[${jst()}]   コメントのコンフリクト数        : ${commentConflictsResult.summary.conflicts}`);
+  
+  // 件数の不一致がないかチェックする
+  if(result.summary.source_counts.itunes_tracks !== result.summary.reconciliation.inserts + result.summary.reconciliation.matched) errorLog('iTunes ライブラリの総楽曲件数と差分チェック結果件数が不一致です');
+  if(result.summary.source_counts.d1_tracks     !== result.summary.reconciliation.deletes + result.summary.reconciliation.matched) errorLog('D1 の総楽曲件数と差分チェック結果件数が不一致です');
+  if(result.summary.reconciliation.matched !== result.summary.matched_tracks.metadata_unchanged + result.summary.matched_tracks.metadata_update_d1) errorLog('マッチした楽曲件数とメタデータの差分チェック結果件数が不一致です');
+  const commentTracks = result.summary.matched_tracks.comment_unchanged
+                      + result.summary.matched_tracks.comment_update_itunes
+                      + result.summary.matched_tracks.comment_update_d1
+                      + result.summary.matched_tracks.comment_conflicts;
+  if(result.summary.reconciliation.matched !== commentTracks) errorLog('マッチした楽曲件数とコメントの差分チェック結果件数が不一致です');
+  
+  // Persistent ID をチェックして想定外の重複が発生していないかチェックする
+  const persistentIdMatched = result.matched.map(track => createPersistentIdKey(track.persistent_id_high, track.persistent_id_low));
+  const itunesPersistentIds = [...result.inserts.map(track => createPersistentIdKey(track.persistent_id_high, track.persistent_id_low)), ...persistentIdMatched];
+  const d1PersistentIds     = [...result.deletes.map(track => createPersistentIdKey(track.persistent_id_high, track.persistent_id_low)), ...persistentIdMatched];
+  if(new Set(itunesPersistentIds).size !== itunesPersistentIds.length) errorLog('INSERT 対象とマッチした楽曲の中に Persistent ID が重複している楽曲があります・iTunes ライブラリ情報に不整合がある恐れがあります');
+  if(new Set(d1PersistentIds    ).size !== d1PersistentIds.length    ) errorLog('DELETE 対象とマッチした楽曲の中に Persistent ID が重複している楽曲があります・D1 情報に不整合がある恐れがあります');
+  
+  // D1 のトラック ID をチェックして想定外の重複が発生していないかチェックする
+  const d1TrackIds = [...result.deletes.map(track => track.id), ...result.matched.map(track => track.d1_track_id)];
+  if(new Set(d1TrackIds).size !== d1TrackIds.length) errorLog('DELETE 対象とマッチした楽曲の中に D1 トラック ID が重複している楽曲があります・実装誤りの恐れがあります');
+  
+  // 最後にステータスを更新する
+  if(result.errors.length === 0) {
+    result.status = 'success';
+    console.log(`[${jst()}] 正常終了`);
+  }
+};
+
+(() => {
+  try {
+    main();
+  }
+  catch(error) {
+    errorLog('メイン関数で想定外のエラーが発生しました', error);
+    result.status = 'failed';
+  }
+  finally {
+    writeResult();
+    console.log(`[${jst()}] Create Sync Plan : Finished`);
+  }
+  // TODO : → コンフリクト修正用ファイルのみ人間が判断して resolution プロパティの value と source を書き換え。コンフリクトがない場合も空配列のファイルとして存在していることを後続スクリプトの前提にする
+  // TODO : → 先に Sync To Local スクリプトを実行。結果 JSON から機械的に comment_sync_to_local できるものと、コンフリクト修正用ファイルを参照して分かるものとを MP3 に反映する
+  // TODO : → その後、Sync To D1 スクリプトを実行。結果 JSON から INSERT・DELETE・UPDATE を生成・実行。コンフリクト修正用ファイルを参照して分かるものを UPDATE として実行する
+  //           DELETE 時は、レパートリー等から参照されている場合は、必要に応じて `track_id` を `NULL` にする
 })();

@@ -5,7 +5,7 @@
  * @param isDateOnly `true` を指定した場合は `YYYY-MM-DD` を返す・未指定時や `false` を明示指定した場合は `YYYY-MM-DD HH:mm:SS` を返す
  * @returns JST の `YYYY-MM-DD` もしくは `YYYY-MM-DD HH:mm:SS` 形式の文字列・引数 `utcString` が不正な形式だった場合は `-` を返す
  */
-export const getJst = (utcString?: string | null, isDateOnly: boolean = false): string => {
+export const jst = (utcString?: string | null, isDateOnly: boolean = false): string => {
   let time: number;
   if(utcString == null) {
     time = Date.now();

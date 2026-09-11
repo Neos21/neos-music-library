@@ -1,13 +1,13 @@
 # Agent Rules
 
-AI エージェント向けの詳細ルールを、作業内容ごとに必要なものだけ読めるよう分割する。ルートの [AGENTS.md](../../AGENTS.md) を入口とし、本ファイルだけで作業手順を完結させない。
+AI 向けの詳細ルールを、作業内容ごとに必要なものだけ読めるよう分割する。ルートの [AGENTS.md](../../AGENTS.md) を入口とし、本ファイルだけで作業手順を完結させない。
 
 
 ## ルール一覧
 
 | ファイル                                   | 適用範囲                                             |
 |--------------------------------------------|------------------------------------------------------|
-| [workflow.md](./workflow.md)               | すべての変更に共通する実行・レビュー・検証手順       |
+| [workflow.md](./workflow.md)               | 全ての変更に共通する実行・レビュー・検証手順         |
 | [common.md](./common.md)                   | 言語・命名・公開範囲・共有処理の共通規約             |
 | [frontend.md](./frontend.md)               | `web-app/client/` の React・State・UI・API 呼び出し  |
 | [backend.md](./backend.md)                 | `web-app/server/` の Route・Service・Repository・D1  |

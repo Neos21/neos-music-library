@@ -1,5 +1,7 @@
 # Common Coding Rules
 
+全体に共通するコーディングルール。
+
 
 ## 命名
 

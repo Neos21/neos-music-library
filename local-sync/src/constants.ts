@@ -12,11 +12,11 @@ export const d1DatabaseId = 'ff089c2f-bf50-46dd-bacc-726994ea8a2b' as const;
 /** 拡張子 JSON */
 export const extensionNameJson = '.json' as const;
 
-/** Export iTunes Library スクリプトの出力ファイル名 */
-export const rawItunesTracksFileName = 'raw-itunes-tracks' as const;
+/** Export iTunes スクリプトの出力ファイル名 */
+export const itunesTracksFileName = 'itunes-tracks' as const;
 /** Load D1 Tracks スクリプトの出力ファイル名 */
 export const d1TracksFileName = 'd1-tracks' as const;
-/** Generate Queries スクリプトの出力ファイル名 */
-export const queriesFileName = 'queries' as const;
 /** Create Sync Plan スクリプトの出力ファイル名 */
 export const syncPlanFileName = 'sync-plan' as const;
+/** Create Sync Plan スクリプトが出力するコメントコンフリクト修正用ファイル名 */
+export const commentConflictsFileName = 'comment-conflicts' as const;

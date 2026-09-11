@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { getJst } from './get-jst.js';
 import { iso8601ToHyphen } from './iso8601-to-hyphen.js';
+import { jst } from './jst.js';
 import { pathExists } from './path-exists.js';
 
 /**
@@ -27,14 +27,14 @@ export const writeResultFile = (logDirectoryPath: string, fileName: string, exte
       fs.renameSync(targetPath, oldFilePath);
       
       fs.renameSync(newFilePath, targetPath);
-      console.log(`[${getJst()}] 前回の結果ファイルをリネーム移動したうえで結果ファイルを保存しました`);
+      console.log(`[${jst()}] 前回の結果ファイルをリネーム移動したうえで結果ファイル ${fileName + extensionName} を保存しました`);
     }
     else {
       fs.writeFileSync(targetPath, data, 'utf-8');
-      console.log(`[${getJst()}] 結果ファイルを保存しました`);
+      console.log(`[${jst()}] 結果ファイル ${fileName + extensionName} を保存しました`);
     }
   }
   catch(error) {
-    console.error(`[${getJst()}] [ERROR] 結果ファイルの出力に失敗しました`, error);
+    console.error(`[${jst()}] [ERROR] 結果ファイル ${fileName + extensionName} の出力に失敗しました`, error);
   }
 };

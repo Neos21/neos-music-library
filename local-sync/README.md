@@ -1,6 +1,42 @@
 # Neo's Music Library : Local Sync
 
-Windows PC 上で iTunes ライブラリおよび MP3 ファイルを参照・更新し、D1 REST API を用いて D1 と同期する。
+Windows PC 上で iTunes と D1 を同期する。
+
+
+## 基本方針
+
+- D1 を手作業で直接 INSERT・UPDATE・DELETE しない
+    - 手動作業が必要な場合でも、人間が行うのは「どの値を採用するか」「どの楽曲同士を紐付けるか」の判断までとする
+    - 人間の判断結果は JSON ファイルに記録してスクリプト経由で実行する
+- 通常の同期処理においては「現在の iTunes ライブラリ全件」と「現在の D1 にある `tracks` テーブル全件」を比較することとし、ローカルに「前回エクスポート結果」を恒久保存する必要がないようにする
+- 通常の差分判定は Persistent ID を使用する
+- コメントは双方向同期ができるように 3 Way マージとし、コンフリクトは更新方針を JSON ファイルに記録して指示する
+
+
+## 用語整理
+
+- iTunes
+    - ローカルの楽曲の状態を示す
+    - `node-id3` パッケージで MP3 ファイルに ID3 タグを書き込み、iTunes COM を経由して `UpdateInfoFromFile()` を実行して iTunes ライブラリに変更を反映させるまでの一連の処理を「iTunes への反映」と表現する
+    - 「MP3」「ID3」といった単語は実装詳細で登場する言葉とし、ドメイン上は基本的に「iTunes」に統一する
+- D1
+    - リモートの楽曲の状態を示す
+    - Local Sync においては「Web アプリ」を認識する必要はないため、ドメイン条は基本的に「D1」に統一する
+    - D1 のレコード内容を変更する処理を「D1 の UPDATE」と表現する
+- 「更新」という曖昧な日本語はなるべく使用しないようにし、「iTunes への反映」「D1 の UPDATE」のいずれかで表現することとする
+    - `update` という英単語は「iTunes への反映」「D1 の UPDATE」それぞれを示す際のリテラルとして用いる場合がある
+- 「同期 (`sync`)」は iTunes と D1 の状態を同時に揃え切った状態を示す言葉とする
+
+
+## Rebind : iTunes ライブラリ再構築時の紐付け直し作業
+
+iTunes ライブラリを再構築すると Persistent ID が変更され、楽曲が一意に特定困難になる。この場合、通常同期とは別の「Rebind モード」を実行する。
+
+このモードでは Persistent ID をキーに使わず、メタデータ (アーティスト名、アルバム名、トラック番号、曲名の4項目) で完全一致を探す。
+
+全ての項目が一致した場合は、iTunes の Persistent ID を D1 に UPDATE する。
+
+項目が一致しなかった場合は、「iTunes に新規追加された楽曲」「iTunes から削除された楽曲」「メタデータが変更されており完全合致しなかった既存楽曲」が考えられるため、一部一致で候補を提示し、人間が仕分ける。仕分けされた内容に基づき INSERT・UPDATE・DELETE を実行する。
 
 
 ## セットアップ
@@ -15,7 +51,11 @@ Node.js v24.18.0 ([nvm-windows](https://github.com/nvm-windows/nvm) 経由で導
     - 権限 : 「アカウント」「D1」「編集」を指定する
 
 
-## 既知の問題
+## メンテナンス
+
+開発者向けの保守メモを示す。
+
+### 既知の警告
 
 Node.js v24.19.0 で実行したところ、`winax` が用いる Node.js の Native C++ 部分で次のようなエラーが発生する。
 
@@ -32,4 +72,4 @@ $ npm rebuild winax --build-from-source
 
 ## iTunes COM
 
-- [iTunes COM Interface: IITFileOrCDTrack Interface Reference](https://documentation.help/iTunesCOM/interfaceIITFileOrCDTrack.html)
+- [iTunes COM Interface : IITFileOrCDTrack Interface Reference](https://documentation.help/iTunesCOM/interfaceIITFileOrCDTrack.html)
