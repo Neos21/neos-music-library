@@ -2,7 +2,7 @@ import { D1Track } from '../schemas/d1-track.js';
 
 /** Load D1 Tracks スクリプトが出力する結果ファイルの型定義 */
 export type D1TracksResult = {
-  /** 実行時刻 */
+  /** 実行日時 */
   executed_at: string;
   /** 実行結果 : 成功 (Error なし)・失敗 (後続処理の実行不可能) */
   status: 'success' | 'failed';

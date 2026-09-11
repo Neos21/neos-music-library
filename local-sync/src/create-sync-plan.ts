@@ -12,6 +12,7 @@ import { ItunesTrack } from './types/itunes-track.js';
 import { ItunesTracksResult } from './types/itunes-tracks-result.js';
 import { Result } from './types/result.js';
 import { CommentConflictsResult, CommentDecision, MetadataDecision, SyncPlanResult } from './types/sync-plan-result.js';
+import { validateCommentConflictsResult } from './lib/validate-comment-conflicts-result.js';
 
 // --------------------------------------------------
 // Create Sync Plan : iTunes と D1 を突合して同期計画を組み立てる
@@ -363,6 +364,10 @@ const main = (): void => {
   const d1TrackIds = [...result.deletes.map(track => track.id), ...result.matched.map(track => track.d1_track_id)];
   if(new Set(d1TrackIds).size !== d1TrackIds.length) errorLog('DELETE 対象とマッチした楽曲の中に D1 トラック ID が重複している楽曲があります・実装誤りの恐れがあります');
   
+  // コメントコンフリクト修正用オブジェクトの状態不整合をチェックする
+  const validationResultcommentConflictsResult = validateCommentConflictsResult(commentConflictsResult);
+  if(validationResultcommentConflictsResult.error != null) errorLog(validationResultcommentConflictsResult.error);
+  
   // 最後にステータスを更新する
   if(result.errors.length === 0) {
     result.status = 'success';
@@ -382,8 +387,4 @@ const main = (): void => {
     writeResult();
     console.log(`[${jst()}] Create Sync Plan : Finished`);
   }
-  // TODO : → コンフリクト修正用ファイルのみ人間が判断して resolution プロパティの value と source を書き換え。コンフリクトがない場合も空配列のファイルとして存在していることを後続スクリプトの前提にする
-  // TODO : → 先に Sync To Local スクリプトを実行。結果 JSON から機械的に comment_sync_to_local できるものと、コンフリクト修正用ファイルを参照して分かるものとを MP3 に反映する
-  // TODO : → その後、Sync To D1 スクリプトを実行。結果 JSON から INSERT・DELETE・UPDATE を生成・実行。コンフリクト修正用ファイルを参照して分かるものを UPDATE として実行する
-  //           DELETE 時は、レパートリー等から参照されている場合は、必要に応じて `track_id` を `NULL` にする
 })();

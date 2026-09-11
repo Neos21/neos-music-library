@@ -47,7 +47,7 @@ export type CommentDecision =
 
 /** Create Sync Plan スクリプトが出力する結果ファイルの型定義 */
 export type SyncPlanResult = {
-  /** 実行時刻 */
+  /** 実行日時 */
   executed_at: string;
   /** 実行結果 : 成功 (Error なし)・失敗 (後続処理の実行不可能) */
   status: 'success' | 'failed';
@@ -126,7 +126,7 @@ export type SyncPlanResult = {
 
 /** コメントコンフリクト修正用ファイルの型定義 */
 export type CommentConflictsResult = {
-  /** 実行時刻 */
+  /** 実行日時 */
   executed_at: string;
   /** コンフリクトの有無 : `no_conflicts` なら後続処理ではこのファイルの詳細を参照しなくて良い */
   status: 'has_conflicts' | 'no_conflicts';
