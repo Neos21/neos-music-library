@@ -10,6 +10,7 @@
     "update-itunes": "echo 'TODO : 事前にコンフリクト解消済か確認 → MP3 タグ更新 → iTunes 反映'",
     "update-d1": "echo 'TODO : 事前にコンフリクト解消済かつ iTunes 反映済か確認 → メタデータ・コメント差分および iTunes 反映済楽曲のコメントを D1 に UPDATE する・レパートリーテーブルも必要に応じて操作'",
     "rebind": "echo 'TODO : iTunes 全件出力 → D1 全件出力までは既存処理を流用可能・差分を見て D1 に INSERT・UPDATE・DELETE する'",
+    "update-all-itunes-info": "tsx ./src/update-all-itunes-info.ts",
     "lint": "eslint . --fix && tsc",
     "eslint": "eslint",
     "tsc": "tsc",

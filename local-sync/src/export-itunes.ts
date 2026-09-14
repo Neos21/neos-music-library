@@ -179,7 +179,7 @@ const main = (): void => {
   if(result.summary.error_tracks !== result.errors.length) {
     errorLog(`取得時エラーがあった楽曲数カウントが不一致です・実装誤りの恐れがあります : Count ${result.summary.error_tracks}・実数 ${result.errors.length}・差異 ${result.summary.error_tracks - result.errors.length}`);
   }
-  // 以降は実行結果をに基づくエラーメッセージを `result.errors` に追加していく
+  // 以降は実行結果に基づくエラーメッセージを `result.errors` に追加していく
   
   // エラーとみなして再実行を促したい状態
   if(result.summary.duplicates > 0 || result.duplicates.length > 0) {
