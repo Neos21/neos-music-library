@@ -1,59 +1,27 @@
-import { extensionNameJson, updateItunesFileName } from './constants.js';
+import nodeId3 from 'node-id3';
+import fs from 'node:fs';
+import path from 'node:path';
+import winax from 'winax';
+
+import { commentConflictsFileName, extensionNameJson, syncPlanFileName, updateItunesCommentFileName } from './constants.js';
 import { createLogDirectory } from './lib/create-log-directory.js';
 import { jst } from './lib/jst.js';
 import { serializeError } from './lib/serialize-error.js';
+import { isConflictResolutionComplete, validateCommentConflictsResult } from './lib/validate-comment-conflicts-result.js';
 import { writeResultFile } from './lib/write-result-file.js';
+import { Result } from './types/result.js';
+import { CommentConflictedTrack, CommentConflictsResult, MatchedTrack, SyncPlanResult } from './types/sync-plan-result.js';
+import { UpdateItunesCommentResult, UpdateTrackResult } from './types/update-itunes-comment-result.js';
 
 // --------------------------------------------------
-// Update iTunes : 同期計画に基づき iTunes にコメントを反映する
+// Update iTunes Comment : 同期計画に基づき iTunes にコメントを反映する
 // --------------------------------------------------
 
-console.log(`[${jst()}] Update iTunes : Start`);
+console.log(`[${jst()}] Update iTunes Comment : Start`);
 
 const logDirectoryPath = createLogDirectory();
 
-/** 楽曲1件の iTunes への反映結果を示す型 */
-type UpdateTrackResult = {
-  /** 反映が必要なデーアの取得元 */
-  source: 'sync_plan' | 'comment_conflicts';
-  /** 反映するコメントの値 : Sync Plan の場合は `d1_comment` を採用する・Comment Conflicts の場合は `resolution.value` を見る */
-  comment: string | null;
-  /**
-   * 反映前に実際の MP3 ファイルから取得できたコメントの値
-   * 
-   * TODO : 念のため控えておく分には悪いことはないけど MP3 ファイルの操作数が増えるのが微妙かな
-   * 
-   * - Sync Plan の場合は `imported_comment` と `itunes_comment` の両方と一致しているはず
-   * - Comment Conflicts の場合、少なくとも `imported_comment` とは一致しているはず
-   * - 事前の JSON データと合致しているか否かのチェックはせず、上述の `comment` 値での反映は行ってしまう
-   */
-  before_comment: string | null;
-};
-
-/** Update iTunes スクリプトが出力する結果ファイルの型定義 */
-type UpdateItunesResult = {
-  /** 実行日時 */
-  executed_at: string;
-  /** 実行結果 : 成功 (Error なし)・失敗 (後続処理の実行不可能) */
-  status: 'success' | 'failed';
-  /** 実行結果サマリ */
-  summary: {
-    /** Sync Plan から取得した「iTunes への反映が必要」と判定された楽曲数 (`comment_decision.action` が `update_itunes` のデータ) */
-    sync_plan_count: number;
-    /** Comment Conflicts から取得した「iTunes への反映が必要」と判定された楽曲数 (`source` が `d1` か `manual` のデータ) */
-    comment_conflicts_count: number;
-    /** Sync Plan を元に iTunes への反映処理が成功した楽曲数 */
-    updated_from_sync_plan: number;
-    /** Comment Conflicts を元に iTunes への反映処理が成功した楽曲数 */
-    updated_from_comment_conflicts: number;
-  }
-  /** iTunes への反映が成功した情報 */
-  updated: Array<UpdateTrackResult>;
-  /** エラー情報 */
-  errors: Array<Partial<UpdateTrackResult> & { error: string; }>;
-};
-
-const result: UpdateItunesResult = {
+const result: UpdateItunesCommentResult = {
   executed_at: jst(),
   status: 'failed',
   summary: {
@@ -88,13 +56,143 @@ const writeResult = (): void => {
     console.error(`[${jst()}] [ERROR] 結果オブジェクトの JSON 文字列化に失敗しました・結果ファイルが出力できません`, error);
   }
   if(data != null) {
-    writeResultFile(logDirectoryPath, updateItunesFileName, extensionNameJson, result.executed_at, data);
+    writeResultFile(logDirectoryPath, updateItunesCommentFileName, extensionNameJson, result.executed_at, data);
+  }
+};
+
+/** 同期計画ファイルを取得する */
+const loadSyncPlan = (): Result<SyncPlanResult> => {
+  try {
+    const text = fs.readFileSync(path.resolve(logDirectoryPath, syncPlanFileName + extensionNameJson), 'utf-8');
+    const json: SyncPlanResult = JSON.parse(text);
+    
+    // 最低限の続行不可能なエラーがないことをチェックする
+    if(json.status === 'failed') {
+      errorLog('同期計画ファイルが `failed` 状態でした・続行不可能と判断し処理を中断します');
+      return { error: 'Failed To Load Sync Plan' };
+    }
+    if(json.errors.length > 0) {
+      errorLog('同期計画ファイルに `errors` が出力されていました・続行不可能と判断し処理を中断します');
+      return { error: 'Failed To Load Sync Plan' };
+    }
+    
+    return { result: json };
+  }
+  catch(error) {
+    errorLog('同期計画ファイルを読み込めませんでした', error);
+    return { error: 'Failed To Load Sync Plan' };
+  }
+};
+
+/** コメントコンフリクト修正用ファイルを取得する */
+const loadCommentConflicts = (): Result<CommentConflictsResult> => {
+  try {
+    const text = fs.readFileSync(path.resolve(logDirectoryPath, commentConflictsFileName + extensionNameJson), 'utf-8');
+    const json: CommentConflictsResult = JSON.parse(text);
+    
+    // ステータスと件数が一致しているか確認する
+    const validationResultcommentConflictsResult = validateCommentConflictsResult(json);
+    if(validationResultcommentConflictsResult.error != null) return { error: validationResultcommentConflictsResult.error };
+    
+    // コンフリクト解消作業が完了しているか確認する
+    const isConflictResolutionCompleteResult = isConflictResolutionComplete(json);
+    if(isConflictResolutionCompleteResult.error != null) return { error: isConflictResolutionCompleteResult.error };
+    
+    return { result: json };
+  }
+  catch(error) {
+    errorLog('コメントコンフリクト修正用ファイルを読み込めませんでした', error);
+    return { error: 'Failed To Load Comment Conflicts' };
+  }
+};
+
+/** 同期計画を元に iTunes に反映する */
+const updateFromSyncPlan = (iTunes: winax.Object, matchedTracks: Array<MatchedTrack>): void => {
+  const tracksToUpdate = matchedTracks.filter(matchedTrack => matchedTrack.comment_decision.action === 'update_itunes');
+  result.summary.sync_plan_count = tracksToUpdate.length;
+  if(tracksToUpdate.length === 0) return console.log(`[${jst()}] 同期計画からの反映対象件数が0件のため、反映作業は発生しませんでした`);
+  console.log(`[${jst()}] 同期計画からの反映対象件数 : ${tracksToUpdate.length} 件`);
+  
+  for(const trackToUpdate of tracksToUpdate) {
+    const updateTrackResult: UpdateTrackResult = {
+      d1_track_id       : trackToUpdate.d1_track_id,
+      persistent_id_high: trackToUpdate.persistent_id_high,
+      persistent_id_low : trackToUpdate.persistent_id_low,
+      source            : 'sync_plan',
+      comment           : trackToUpdate.comment_decision.d1_comment ?? null
+    };
+    try {
+      /** iTunes から楽曲を特定しフルパスを取得する */
+      const track = iTunes.LibraryPlaylist.Tracks.ItemByPersistentID(trackToUpdate.persistent_id_high, trackToUpdate.persistent_id_low);
+      // MP3 ファイルのコメントを書き換える
+      nodeId3.update({ comment: { language: 'eng', text: trackToUpdate.comment_decision.d1_comment ?? '' } }, track.Location);
+      // iTunes に反映する
+      track.UpdateInfoFromFile();
+      
+      result.summary.updated_from_sync_plan++;
+      result.updated.push(updateTrackResult);
+    }
+    catch(error) {
+      console.error(`[${jst()}] [ERROR] 同期計画からの反映に失敗しました`, error);
+      result.errors.push({ ...updateTrackResult, error: `同期計画からの反映に失敗しました : ${serializeError(error)}` });
+    }
+  }
+};
+
+/** コンフリクト情報を元に iTunes に反映する */
+const updateFromCommentConflicts = (iTunes: winax.Object, commentConflictedTracks: Array<CommentConflictedTrack>): void => {
+  const tracksToUpdate = commentConflictedTracks.filter(commentConflictedTrack => ['d1', 'manual'].includes(commentConflictedTrack.resolution.source!));
+  result.summary.comment_conflicts_count = tracksToUpdate.length;
+  if(tracksToUpdate.length === 0) return console.log(`[${jst()}] コンフリクト情報からの反映対象件数が0件のため、反映作業は発生しませんでした`);
+  console.log(`[${jst()}] コンフリクト情報からの反映対象件数 : ${tracksToUpdate.length} 件`);
+  
+  for(const trackToUpdate of tracksToUpdate) {
+    const updateTrackResult: UpdateTrackResult = {
+      d1_track_id       : trackToUpdate.d1_track_id,
+      persistent_id_high: trackToUpdate.persistent_id_high,
+      persistent_id_low : trackToUpdate.persistent_id_low,
+      source            : 'comment_conflicts',
+      comment           : trackToUpdate.resolution.value ?? null
+    };
+    try {
+      /** iTunes から楽曲を特定しフルパスを取得する */
+      const track = iTunes.LibraryPlaylist.Tracks.ItemByPersistentID(trackToUpdate.persistent_id_high, trackToUpdate.persistent_id_low);
+      // MP3 ファイルのコメントを書き換える
+      nodeId3.update({ comment: { language: 'eng', text: trackToUpdate.resolution.value ?? '' } }, track.Location);
+      // iTunes に反映する
+      track.UpdateInfoFromFile();
+      
+      result.summary.updated_from_comment_conflicts++;
+      result.updated.push(updateTrackResult);
+    }
+    catch(error) {
+      console.error(`[${jst()}] [ERROR] コンフリクト情報からの反映に失敗しました`, error);
+      result.errors.push({ ...updateTrackResult, error: `コンフリクト情報からの反映に失敗しました : ${serializeError(error)}` });
+    }
   }
 };
 
 /** メイン関数 */
 const main = (): void => {
-  // TODO
+  // iTunes を起動する
+  const iTunes = new winax.Object('iTunes.Application');
+  
+  // 同期計画ファイルを読み込む
+  const syncPlanResult = loadSyncPlan();
+  if(syncPlanResult.error != null) return errorLog(syncPlanResult.error);
+  
+  // コメントコンフリクト修正用ファイルを読み込み、コンフリクト解消済か確認する
+  const commentConflictsResult = loadCommentConflicts();
+  if(commentConflictsResult.error != null) return errorLog(commentConflictsResult.error);
+  
+  // iTunes に反映していく
+  updateFromSyncPlan(iTunes, syncPlanResult.result.matched);
+  updateFromCommentConflicts(iTunes, commentConflictsResult.result.conflicts);
+  
+  if(result.errors.length === 0) {
+    result.status = 'success';
+    console.log(`[${jst()}] 全件正常終了`);
+  }
 };
 
 (() => {
@@ -107,6 +205,6 @@ const main = (): void => {
   }
   finally {
     writeResult();
-    console.log(`[${jst()}] Update iTunes : Finished`);
+    console.log(`[${jst()}] Update iTunes Comment : Finished`);
   }
 })();

@@ -50,6 +50,58 @@ Node.js v24.18.0 ([nvm-windows](https://github.com/nvm-windows/nvm) 経由で導
 - Cloudflare 管理画面の[ユーザー API トークン](https://dash.cloudflare.com/profile/api-tokens)より、D1 API をコールするための API トークンを作成する
     - 権限 : 「アカウント」「D1」「編集」を指定する
 
+```bash
+# 初期インストール
+$ npm install
+# `.env.example` を参考に `.env` を作成する
+```
+
+
+## スクリプト
+
+- 通常の更新フロー
+
+```bash
+# iTunes ライブラリをエクスポートする → `itunes-tracks.json` を出力する
+$ npm run export-itunes
+# D1 の `tracks` テーブルを取得する → `d1-tracks.json` を出力する
+$ npm run load-d1-tracks
+# `itunes-tracks.json` と `d1-tracks.json` から同期計画を組み立てる → `sync-plan.json` と `comment-conflicts.json` を出力する
+$ npm run create-sync-plan
+
+# コメントのコンフリクトがあった場合は `comment-conflicts.json` の `resolution` を記入する
+
+# `sync-plan.json` と `comment-conflicts.json` を参照して iTunes にコメントを反映する → `update-itunes-comment.json` を出力する
+$ npm run update-itunes-comment
+# `sync-plan.json` と `comment-conflicts.json` と `update-itunes-comment.json` を参照して D1 に各種データを INSERT・UPDATE・DELETE する → `update-d1.json` を出力する
+$ npm run update-d1
+```
+
+- Rebind 時のフロー
+
+```bash
+# TODO : 要実装
+$ npm run rebind
+```
+
+- その他スクリプト
+
+```bash
+# 前回実行結果ファイル (`-previous-` を含む JSON ファイル) を削除する
+$ npm run remove-previous-files
+
+# iTunes の全楽曲に対して `UpdateInfoFromFile()` を実行して反映する
+$ npm run update-all-itunes-info
+```
+
+
+## 開発の開始
+
+```bash
+# Lint と型チェックを実行する
+$ npm run lint
+```
+
 
 ## メンテナンス
 

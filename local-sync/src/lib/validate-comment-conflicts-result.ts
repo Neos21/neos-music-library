@@ -35,7 +35,7 @@ export const validateCommentConflictsResult = (commentConflictsResult: CommentCo
 
 /** コメントコンフリクト修正用オブジェクトの全体整合性は事前にチェック済の前提として、コンフリクト解消作業が完了しているか否かの部分だけチェックする */
 export const isConflictResolutionComplete = (commentConflictsResult: CommentConflictsResult): Result<string> => {
-  if(commentConflictsResult.status === 'no_conflicts') return { error: '[NO_CONFCLICTS] ステータスが `no_conflicts` のためチェックをスキップしました' };
+  if(commentConflictsResult.status === 'no_conflicts') return { result: '[NO_CONFCLICTS] ステータスが `no_conflicts` のためコンフリクト解消済とみなします' };
   
   if(commentConflictsResult.conflicts.length === 0) return { result: '[CONFLICTS_LENGTH_ZERO] `conflicts` は空配列です・コンフリクトはありません' };
   

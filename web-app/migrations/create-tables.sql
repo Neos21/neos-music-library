@@ -20,6 +20,8 @@ CREATE TABLE tracks (  -- iTunes ライブラリをマスターとした楽曲�
   updated_at  TEXT  NOT NULL  DEFAULT CURRENT_TIMESTAMP   -- レコード最終更新日時 (Web アプリ上・ローカルからの操作時に関係なく全ての UPDATE 時に更新する)
 );
 
+CREATE UNIQUE INDEX unique_index_tracks_persistent_id ON tracks (persistent_id_high, persistent_id_low);  -- Persistent ID でユニーク制約をかけておく
+
 CREATE TABLE repertoires (  -- レパートリー
   id        INTEGER  PRIMARY KEY  AUTOINCREMENT,  -- レパートリー ID
   

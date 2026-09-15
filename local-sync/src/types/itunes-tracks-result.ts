@@ -10,7 +10,7 @@ export type ItunesTracksResult = {
   summary: {
     /** `iTunes.LibraryPlaylist.Tracks` で取得した全楽曲数 */
     total_tracks: number;
-    /** `raw_itunes_tracks` として出力した楽曲数 */
+    /** `itunes_tracks` として出力した楽曲数 */
     exported_tracks: number;
     /** Podcast と判定して除外した数 */
     podcast_tracks: number;

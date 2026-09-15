@@ -9,7 +9,28 @@ import { serializeError } from './lib/serialize-error.js';
 
 console.log(`[${jst()}] Update All iTunes Info : Start`);
 
-const result: any = {  // TODO
+/** 結果オブジェクト */
+type UpdateAllItunesInfoResult = {
+  /** 実行日時 */
+  executed_at: string;
+  /** 実行結果 : 成功 (Error なし)・失敗 (後続処理の実行不可能) */
+  status: 'success' | 'failed';
+  /** 実行結果サマリ */
+  summary: {
+    /** iTunes の全楽曲数 */
+    total_tracks: number;
+    /** iTunes の反映に成功した楽曲数 */
+    updated_tracks: number;
+    /** ポッドキャストと判定した楽曲数 */
+    podcast_tracks: number;
+    /** iTunes の反映でエラーが発生した件数 */
+    error_tracks: number;
+  };
+  /** エラー情報 */
+  errors: Array<{ error: string; }>;
+};
+
+const result: UpdateAllItunesInfoResult = {
   executed_at: jst(),
   status: 'failed',
   summary: {
@@ -105,6 +126,7 @@ const main = (): void => {
     result.status = 'failed';
   }
   finally {
+    console.log(JSON.stringify(result, null, 2));
     console.log(`[${jst()}] Update All iTunes Info : Finished`);
   }
 })();

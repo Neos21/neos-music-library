@@ -2,7 +2,7 @@ import z from 'zod';
 
 /** D1 の `tracks` テーブルの1レコードに相当するスキーマ */
 export const d1TrackSchema = z.object({
-  /** D1 Track ID */
+  /** D1 トラック ID */
   id: z.number(),
   
   /** アーティスト名 */

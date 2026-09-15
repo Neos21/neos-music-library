@@ -5,6 +5,7 @@ import { commentConflictsFileName, d1TracksFileName, extensionNameJson, itunesTr
 import { createLogDirectory } from './lib/create-log-directory.js';
 import { jst } from './lib/jst.js';
 import { serializeError } from './lib/serialize-error.js';
+import { validateCommentConflictsResult } from './lib/validate-comment-conflicts-result.js';
 import { writeResultFile } from './lib/write-result-file.js';
 import { D1Track } from './schemas/d1-track.js';
 import { D1TracksResult } from './types/d1-tracks-result.js';
@@ -12,7 +13,6 @@ import { ItunesTrack } from './types/itunes-track.js';
 import { ItunesTracksResult } from './types/itunes-tracks-result.js';
 import { Result } from './types/result.js';
 import { CommentConflictsResult, CommentDecision, MetadataDecision, SyncPlanResult } from './types/sync-plan-result.js';
-import { validateCommentConflictsResult } from './lib/validate-comment-conflicts-result.js';
 
 // --------------------------------------------------
 // Create Sync Plan : iTunes と D1 を突合して同期計画を組み立てる
@@ -112,7 +112,7 @@ const writeResult = (): void => {
 const createPersistentIdKey = (persistentIdHigh: number, persistentIdLow: number): string => `${persistentIdHigh}:${persistentIdLow}`;
 
 /** iTunes ライブラリ情報ファイルを取得して Persistent ID をキーにした Map で返す */
-const loadRawItunesTracks = (): Result<Map<string, ItunesTrack>> => {
+const loadItunesTracks = (): Result<Map<string, ItunesTrack>> => {
   try {
     const text = fs.readFileSync(path.resolve(logDirectoryPath, itunesTracksFileName + extensionNameJson), 'utf-8');
     const json: ItunesTracksResult = JSON.parse(text);
@@ -120,24 +120,24 @@ const loadRawItunesTracks = (): Result<Map<string, ItunesTrack>> => {
     // 最低限の続行不可能なエラーがないことをチェックする
     if(json.status === 'failed') {
       errorLog('iTunes ライブラリ情報のファイルが `failed` 状態でした・続行不可能と判断し処理を中断します');
-      return { error: 'Failed To Load Raw iTunes Tracks' };
+      return { error: 'Failed To Load iTunes Tracks' };
     }
     if(json.errors.length > 0) {
       errorLog('iTunes ライブラリ情報のファイルに `errors` が出力されていました・続行不可能と判断し処理を中断します');
-      return { error: 'Failed To Load Raw iTunes Tracks' };
+      return { error: 'Failed To Load iTunes Tracks' };
     }
     
     const itunesTracks = new Map(json.itunes_tracks.map(itunesTrack => [createPersistentIdKey(itunesTrack.persistent_id_high, itunesTrack.persistent_id_low), itunesTrack]));
     if(json.itunes_tracks.length !== itunesTracks.size) {
       errorLog('iTunes ライブラリ情報のファイルに Persistent ID が重複している項目が出力されているようです・データ不整合の可能性があります・続行不可能と判断し処理を中断します');
-      return { error: 'Failed To Load Raw iTunes Tracks' };
+      return { error: 'Failed To Load iTunes Tracks' };
     }
     
     return { result: itunesTracks };
   }
   catch(error) {
-    errorLog('iTunes ライブラリ情報を読み込めませんでした', error);
-    return { error: 'Failed To Load Raw iTunes Tracks' };
+    errorLog('iTunes ライブラリ情報のファイルを読み込めませんでした', error);
+    return { error: 'Failed To Load iTunes Tracks' };
   }
 };
 
@@ -170,7 +170,7 @@ const loadD1Tracks = (): Result<Map<string, D1Track>> => {
     return { result: d1Tracks };
   }
   catch(error) {
-    errorLog('D1 楽曲情報を読み込めませんでした', error);
+    errorLog('D1 楽曲情報のファイルを読み込めませんでした', error);
     return { error: 'Failed To Load D1 Tracks' };
   }
 };
@@ -178,8 +178,8 @@ const loadD1Tracks = (): Result<Map<string, D1Track>> => {
 /** D1 の Persistent ID をキーに iTunes 側を走査 → iTunes 側に該当する Persistent ID がない楽曲は `deletes` に追加する */
 const detectDeletes = (d1Tracks: Map<string, D1Track>, itunesTracks: Map<string, ItunesTrack>): void => {
   for(const [persistentIdKey, d1Track] of d1Tracks) {
-    const rawItunesTrack = itunesTracks.get(persistentIdKey);
-    if(rawItunesTrack == null) result.deletes.push(d1Track);
+    const itunesTrack = itunesTracks.get(persistentIdKey);
+    if(itunesTrack == null) result.deletes.push(d1Track);
   }
 };
 
@@ -284,7 +284,7 @@ const detectInsertsAndMatched = (itunesTracks: Map<string, ItunesTrack>, d1Track
 /** メイン関数 */
 const main = (): void => {
   // ファイルを読み込む
-  const itunesTracksResult = loadRawItunesTracks();
+  const itunesTracksResult = loadItunesTracks();
   if(itunesTracksResult.error != null) return;
   const itunesTracks = itunesTracksResult.result;
   

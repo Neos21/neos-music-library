@@ -33,7 +33,7 @@ export type CommentDecision =
        * コメント差分アリ
        * 
        * - `update_itunes` : D1 の `comment` に新しい値がある場合 … iTunes に反映が必要 → 反映成功時に D1 の `imported_comment` を UPDATE して「同期済・差分なし」とみなせるようにする必要がある
-       * - `update_d1`     : iTunes に新しい値がある場合 … D1 の `comment` と `imported_comment` に同値を UPDATE して「同期済・差分なし」とみなせるようにする必要がある
+       * - `update_d1`     : iTunes に新しい値がある場合 … D1 の `comment` と `imported_comment` に対して `itunes_comment` を UPDATE して「同期済・差分なし」とみなせるようにする必要がある
        * - `conflict`      : コンフリクト検出 (自動判定不可)
        */
       action: 'update_itunes' | 'update_d1' | 'conflict';
@@ -44,6 +44,21 @@ export type CommentDecision =
       /** iTunes ライブラリより取得した現在のコメント */
       itunes_comment: string | null;
     };
+
+/** iTunes と D1 の両方にある楽曲の情報 */
+export type MatchedTrack = {
+  /** D1 トラック ID */
+  d1_track_id: number;
+  /** Persistent ID High */
+  persistent_id_high: number;
+  /** Persistent ID Low */
+  persistent_id_low: number;
+  
+  /** メタデータの差分有無・更新内容 */
+  metadata_decision: MetadataDecision;
+  /** コメントの差分有無・更新方針 */
+  comment_decision: CommentDecision;
+};
 
 /** Create Sync Plan スクリプトが出力する結果ファイルの型定義 */
 export type SyncPlanResult = {
@@ -107,21 +122,44 @@ export type SyncPlanResult = {
   /** D1 に DELETE する楽曲情報 */
   deletes: Array<D1Track>;
   /** iTunes と D1 の両方にある楽曲の情報 */
-  matched: Array<{
-    /** D1 Track ID */
-    d1_track_id: number;
-    /** Persistent ID High */
-    persistent_id_high: number;
-    /** Persistent ID Low */
-    persistent_id_low: number;
-    
-    /** メタデータの差分有無・更新内容 */
-    metadata_decision: MetadataDecision;
-    /** コメントの差分有無・更新方針 */
-    comment_decision: CommentDecision;
-  }>;
+  matched: Array<MatchedTrack>;
   /** エラー情報 */
   errors: Array<{ error: string; }>;
+};
+
+/** コメントがコンフリクトしている楽曲情報 */
+export type CommentConflictedTrack = {
+  /** D1 トラック ID */
+  d1_track_id: number;
+  /** Persistent ID High */
+  persistent_id_high: number;
+  /** Persistent ID Low */
+  persistent_id_low: number;
+  
+  /** D1 より取得した旧 iTunes のコメント */
+  imported_comment: string | null;
+  /** D1 より取得したコメント */
+  d1_comment: string | null;
+  /** iTunes ライブラリより取得した現在のコメント */
+  itunes_comment: string | null;
+  
+  /** 人間が判定した結果を入力する欄 */
+  resolution: {
+    /**
+     * 人間が採用する値を書き込む : ファイル出力時は `null`
+     * 
+     * - 空欄 (`null`) に更新したい場合もあり得るので `source` が `null` でないことをチェックする
+     */
+    value: null | string;
+    /**
+     * 採用した値の出典 : ファイル出力時は `null`
+     * 
+     * - D1 の値を採用したら `d1` を指定し、iTunes への反映を行う
+     * - iTunes の値を採用したら `itunes` を指定し、D1 への UPDATE を行う
+     * - どちらでもない新たな値を採用したら `manual` を指定し、iTunes への反映と D1 への UPDATE を行う
+     */
+    source: null | 'd1' | 'itunes' | 'manual';
+  }
 };
 
 /** コメントコンフリクト修正用ファイルの型定義 */
@@ -136,37 +174,5 @@ export type CommentConflictsResult = {
     conflicts: number;
   },
   /** コンフリクト情報 */
-  conflicts: Array<{
-    /** D1 Track ID */
-    d1_track_id: number;
-    /** Persistent ID High */
-    persistent_id_high: number;
-    /** Persistent ID Low */
-    persistent_id_low: number;
-    
-    /** D1 より取得した旧 iTunes のコメント */
-    imported_comment: string | null;
-    /** D1 より取得したコメント */
-    d1_comment: string | null;
-    /** iTunes ライブラリより取得した現在のコメント */
-    itunes_comment: string | null;
-    
-    /** 人間が判定した結果を入力する欄 */
-    resolution: {
-      /**
-       * 人間が採用する値を書き込む : ファイル出力時は `null`
-       * 
-       * - 空欄 (`null`) に更新したい場合もあり得るので `source` が `null` でないことをチェックする
-       */
-      value: null | string;
-      /**
-       * 採用した値の出典 : ファイル出力時は `null`
-       * 
-       * - D1 の値を採用したら `d1` を指定し、iTunes への反映を行う
-       * - iTunes の値を採用したら `itunes` を指定し、D1 への UPDATE を行う
-       * - どちらでもない新たな値を採用したら `manual` を指定し、iTunes への反映と D1 への UPDATE を行う
-       */
-      source: null | 'd1' | 'itunes' | 'manual';
-    }
-  }>;
+  conflicts: Array<CommentConflictedTrack>;
 };
