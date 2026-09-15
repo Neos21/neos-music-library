@@ -366,13 +366,17 @@ const updateMetadataToD1 = async (cloudflare: Cloudflare, matchedTracks: Array<M
   const batch = tracksToUpdate.map(trackToUpdate => {
     const setClauses: Array<string> = [];
     const params: Array<string | number | null> = [];
+    
     Object.entries(trackToUpdate.metadata_decision.changes!).forEach(([columnName, value]) => {
-      setClauses.push(`SET ${columnName} = ?`);
+      setClauses.push(`${columnName} = ?`);
       params.push(value);
     });
+    
+    setClauses.push('updated_at = CURRENT_TIMESTAMP');
     params.push(trackToUpdate.d1_track_id);
+    
     return {
-      sql: `UPDATE tracks ${setClauses.join(', ')} WHERE id = ?`,
+      sql: `UPDATE tracks SET ${setClauses.join(', ')} WHERE id = ?`,
       params: params as unknown as Array<string>
     };
   });
@@ -420,7 +424,7 @@ const updateCommentToD1 = async (cloudflare: Cloudflare, matchedTracks: Array<Ma
   console.log(`[${jst()}] コメント UPDATE 対象件数 : ${tracksToUpdate.length} 件`);
   
   const batch = tracksToUpdate.map(trackToUpdate => ({
-    sql: 'UPDATE tracks SET comment = ?, imported_comment = ? WHERE id = ?',
+    sql: 'UPDATE tracks SET comment = ?, imported_comment = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
     params: [trackToUpdate.comment_decision.itunes_comment ?? null, trackToUpdate.comment_decision.itunes_comment ?? null, trackToUpdate.d1_track_id] as unknown as Array<string>
   }));
   
@@ -467,7 +471,7 @@ const updateConflictedCommentToD1 = async (cloudflare: Cloudflare, commentConfli
   console.log(`[${jst()}] コンフリクトしていたコメント UPDATE 対象件数 : ${tracksToUpdate.length} 件`);
   
   const batch = tracksToUpdate.map(trackToUpdate => ({
-    sql: 'UPDATE tracks SET comment = ?, imported_comment = ? WHERE id = ?',
+    sql: 'UPDATE tracks SET comment = ?, imported_comment = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
     params: [trackToUpdate.resolution.value ?? null, trackToUpdate.resolution.value ?? null, trackToUpdate.d1_track_id] as unknown as Array<string>
   }));
   
@@ -511,15 +515,12 @@ const main = async (): Promise<void> => {
   const cloudflareClientResult = createCloudflareClient();
   if(cloudflareClientResult.error != null) return errorLog(cloudflareClientResult.error);
   
-  // 同期計画ファイルを読み込む
   const syncPlanResult = loadSyncPlan();
-  if(syncPlanResult.error != null) return errorLog(syncPlanResult.error);
-  // コメントコンフリクト修正用ファイルを読み込み、コンフリクト解消済か確認する
+  if(syncPlanResult.error != null) return;
   const conflictsResult = loadConflicts();
-  if(conflictsResult.error != null) return errorLog(conflictsResult.error);
-  // iTunes へのコメント反映結果ファイルを読み込む
+  if(conflictsResult.error != null) return;
   const updateItunesResult = loadUpdateItunes();
-  if(updateItunesResult.error != null) return errorLog(updateItunesResult.error);
+  if(updateItunesResult.error != null) return;
   
   const cloudflare = cloudflareClientResult.result;
   const syncPlan = syncPlanResult.result;
