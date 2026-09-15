@@ -4,13 +4,13 @@ import { jst } from './lib/jst.js';
 import { serializeError } from './lib/serialize-error.js';
 
 // --------------------------------------------------
-// Update All iTunes Info : iTunes の全楽曲に対して `UpdateInfoFromFile()` を実行する
+// Update All iTunes : iTunes の全楽曲に対して `UpdateInfoFromFile()` を実行する
 // --------------------------------------------------
 
-console.log(`[${jst()}] Update All iTunes Info : Start`);
+console.log(`[${jst()}] Update All iTunes : Start`);
 
 /** 結果オブジェクト */
-type UpdateAllItunesInfoResult = {
+type UpdateAllItunesResult = {
   /** 実行日時 */
   executed_at: string;
   /** 実行結果 : 成功 (Error なし)・失敗 (後続処理の実行不可能) */
@@ -30,7 +30,7 @@ type UpdateAllItunesInfoResult = {
   errors: Array<{ error: string; }>;
 };
 
-const result: UpdateAllItunesInfoResult = {
+const result: UpdateAllItunesResult = {
   executed_at: jst(),
   status: 'failed',
   summary: {
@@ -63,10 +63,10 @@ const main = (): void => {
   console.log(`[${jst()}] 総楽曲数 : ${result.summary.total_tracks} 件`);
   
   for(let i = 1; i <= result.summary.total_tracks; i++) {
-    if(i % 1000 === 0) console.log(`[${jst()}] ${i} 件目を処理中…`);  // テキトーに進捗表示
+    if(i % 1000 === 0) console.log(`[${jst()}] ${i} 件目を処理中…`);
     
-    const track = tracks.Item(i);
     try {
+      const track = tracks.Item(i);
       track.UpdateInfoFromFile();  // 楽曲情報を更新する
       
       if(track.Podcast) {
@@ -77,9 +77,10 @@ const main = (): void => {
       }
     }
     catch(error) {
-      errorLog('楽曲情報取得中のエラー・次の楽曲の処理に移動します', error);
+      errorLog('楽曲情報更新中のエラー・次の楽曲の処理に移動します', error);
       result.summary.error_tracks++;
       try {
+        const track = tracks.Item(i);
         console.error(`  エラーになった楽曲情報 : ${i}`);
         console.error(`    Artist   : ${track.Artist}`);
         console.error(`    Album    : ${track.Album}`);
@@ -98,11 +99,11 @@ const main = (): void => {
   console.log(`[${jst()}]   総楽曲数                  : ${result.summary.total_tracks}`);
   console.log(`[${jst()}]   更新した楽曲数            : ${result.summary.updated_tracks}`);
   console.log(`[${jst()}]   Podcast として更新した数  : ${result.summary.podcast_tracks}`);
-  console.log(`[${jst()}]   取得時エラーがあった数    : ${result.summary.error_tracks}`);
+  console.log(`[${jst()}]   更新時エラーがあった数    : ${result.summary.error_tracks}`);
   
   // iTunes COM の起動時エラーがあれば早期 `return` してあり、この時点では `error_tracks` と `errors.length` が一致しているはずなのでココでチェックする
   if(result.summary.error_tracks !== result.errors.length) {
-    errorLog(`取得時エラーがあった楽曲数カウントが不一致です・実装誤りの恐れがあります : Count ${result.summary.error_tracks}・実数 ${result.errors.length}・差異 ${result.summary.error_tracks - result.errors.length}`);
+    errorLog(`更新時エラーがあった楽曲数カウントが不一致です・実装誤りの恐れがあります : Count ${result.summary.error_tracks}・実数 ${result.errors.length}・差異 ${result.summary.error_tracks - result.errors.length}`);
   }
   
   // 実装誤りに起因すると思われる、想定されていない Result の状態不整合もチェックしておき、万が一あったら失敗扱いとする
@@ -127,6 +128,6 @@ const main = (): void => {
   }
   finally {
     console.log(JSON.stringify(result, null, 2));
-    console.log(`[${jst()}] Update All iTunes Info : Finished`);
+    console.log(`[${jst()}] Update All iTunes : Finished`);
   }
 })();

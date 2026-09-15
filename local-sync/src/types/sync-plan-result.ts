@@ -1,4 +1,4 @@
-import { ItunesTrack } from './itunes-track.js';
+import { ItunesTrack } from './itunes-tracks-result.js';
 import { D1Track } from '../schemas/d1-track.js';
 
 /** メタデータの差分有無・更新内容を分類する */
@@ -60,7 +60,7 @@ export type MatchedTrack = {
   comment_decision: CommentDecision;
 };
 
-/** Create Sync Plan スクリプトが出力する結果ファイルの型定義 */
+/** Sync Plan スクリプトが出力する結果ファイルの型定義 */
 export type SyncPlanResult = {
   /** 実行日時 */
   executed_at: string;
@@ -128,7 +128,7 @@ export type SyncPlanResult = {
 };
 
 /** コメントがコンフリクトしている楽曲情報 */
-export type CommentConflictedTrack = {
+export type ConflictedTrack = {
   /** D1 トラック ID */
   d1_track_id: number;
   /** Persistent ID High */
@@ -163,7 +163,7 @@ export type CommentConflictedTrack = {
 };
 
 /** コメントコンフリクト修正用ファイルの型定義 */
-export type CommentConflictsResult = {
+export type ConflictsResult = {
   /** 実行日時 */
   executed_at: string;
   /** コンフリクトの有無 : `no_conflicts` なら後続処理ではこのファイルの詳細を参照しなくて良い */
@@ -174,5 +174,5 @@ export type CommentConflictsResult = {
     conflicts: number;
   },
   /** コンフリクト情報 */
-  conflicts: Array<CommentConflictedTrack>;
+  conflicts: Array<ConflictedTrack>;
 };

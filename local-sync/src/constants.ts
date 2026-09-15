@@ -14,13 +14,13 @@ export const extensionNameJson = '.json' as const;
 
 /** Export iTunes スクリプトの出力ファイル名 */
 export const itunesTracksFileName = 'itunes-tracks' as const;
-/** Load D1 Tracks スクリプトの出力ファイル名 */
+/** Export D1 スクリプトの出力ファイル名 */
 export const d1TracksFileName = 'd1-tracks' as const;
-/** Create Sync Plan スクリプトの出力ファイル名 */
+/** Sync Plan スクリプトの出力ファイル名 */
 export const syncPlanFileName = 'sync-plan' as const;
-/** Create Sync Plan スクリプトが出力するコメントコンフリクト修正用ファイル名 */
-export const commentConflictsFileName = 'comment-conflicts' as const;
-/** Update iTunes Comment スクリプトの出力ファイル名 */
-export const updateItunesCommentFileName = 'update-itunes-comment' as const;
+/** Sync Plan スクリプトが出力するコメントコンフリクト修正用ファイル名 */
+export const conflictsFileName = 'conflicts' as const;
+/** Update iTunes スクリプトの出力ファイル名 */
+export const updateItunesFileName = 'update-itunes' as const;
 /** Update D1 スクリプトの出力ファイル名 */
 export const updateD1FileName = 'update-d1' as const;

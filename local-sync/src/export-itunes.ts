@@ -5,8 +5,7 @@ import { createLogDirectory } from './lib/create-log-directory.js';
 import { jst } from './lib/jst.js';
 import { serializeError } from './lib/serialize-error.js';
 import { writeResultFile } from './lib/write-result-file.js';
-import { ItunesTrack } from './types/itunes-track.js';
-import { ItunesTracksResult } from './types/itunes-tracks-result.js';
+import { ItunesTrack, ItunesTracksResult } from './types/itunes-tracks-result.js';
 
 // --------------------------------------------------
 // Export iTunes : iTunes ライブラリ全件を JSON ファイルに出力する
@@ -21,7 +20,7 @@ const result: ItunesTracksResult = {
   status: 'failed',  // 成功時に `success` に切り替える
   summary: {
     total_tracks: 0,
-    exported_tracks: 0,
+    itunes_tracks: 0,
     podcast_tracks: 0,
     duplicates: 0,
     warning_tracks: 0,
@@ -55,7 +54,7 @@ const errorLog = (message: string, error?: unknown): void => {
 const writeResult = (): void => {
   let data;
   try {
-    data = JSON.stringify(result, null, 2) + '\n';
+    data = `${JSON.stringify(result, null, 2)}\n`;
   }
   catch(error) {
     console.error(`[${jst()}] [ERROR] 結果オブジェクトの JSON 文字列化に失敗しました・結果ファイルが出力できません`, error);
@@ -73,23 +72,23 @@ const writeResult = (): void => {
 const validateItunesTrack = (itunesTrack: ItunesTrack): Array<string> => {
   const warnings = [];
   
-  if(itunesTrack.artist == null) warnings.push('アーティスト名が null (iTunes 上で空欄) です・iTunes ライブラリの整理を推奨します');
+  if(itunesTrack.artist == null) warnings.push('アーティスト名が `null` (iTunes 上で空欄) です・iTunes ライブラリの整理を推奨します');
   else if(itunesTrack.artist === '') warnings.push('アーティスト名が空文字です (想定外)');
   else if(itunesTrack.artist !== String(itunesTrack.artist).trim()) warnings.push('アーティスト名の前後に空白文字が混ざっています・iTunes ライブラリの整理を推奨します');
   
-  if(itunesTrack.album == null) warnings.push('アルバム名が null (iTunes 上で空欄) です・アルバム名がない場合は「■」を明記してください');
+  if(itunesTrack.album == null) warnings.push('アルバム名が `null` (iTunes 上で空欄) です・アルバム名がない場合は「■」を明記してください');
   else if(itunesTrack.album === '') warnings.push('アルバム名が空文字です (想定外)');
   else if(itunesTrack.album !== String(itunesTrack.album).trim()) warnings.push('アルバム名の前後に空白文字が混ざっています・iTunes ライブラリの整理を推奨します');
   
   if(itunesTrack.track_number == null) warnings.push('トラック番号は iTunes 上で空欄でも 0 が取得できる想定です・iTunes COM の仕様再確認が必要です (想定外)');
   
-  if(itunesTrack.title == null) warnings.push('曲名が null です (iTunes 上では空欄にできないため想定外)');
+  if(itunesTrack.title == null) warnings.push('曲名が `null` です (iTunes 上では空欄にできないため想定外)');
   else if(itunesTrack.title === '') warnings.push('曲名が空文字です (想定外)');
   else if(itunesTrack.title !== String(itunesTrack.title).trim()) warnings.push('曲名の前後に空白文字が混ざっています・iTunes ライブラリの整理を推奨します');
   
-  if(itunesTrack.persistent_id_high == null) warnings.push('Persistent ID High が null です・取得できていないようです (想定外)');
+  if(itunesTrack.persistent_id_high == null) warnings.push('Persistent ID High が `null` です・取得できていないようです (想定外)');
   
-  if(itunesTrack.persistent_id_low == null) warnings.push('Persistent ID Low が null です・取得できていないようです (想定外)');
+  if(itunesTrack.persistent_id_low == null) warnings.push('Persistent ID Low が `null` です・取得できていないようです (想定外)');
   
   // `imported_comment` は空欄 (`null`) も全然あり得るのでチェックなし
   
@@ -131,7 +130,7 @@ const main = (): void => {
       
       // 処理が正常に終わったら結果を書き込む
       result.itunes_tracks.push(itunesTrack);
-      result.summary.exported_tracks++;
+      result.summary.itunes_tracks++;
       
       // バリデーションエラーがあったら書き込む
       if(warnings.length > 0) {
@@ -161,7 +160,7 @@ const main = (): void => {
   
   console.log(`[${jst()}] 実行結果サマリ :`);
   console.log(`[${jst()}]   総楽曲数                       : ${result.summary.total_tracks}`);
-  console.log(`[${jst()}]   エクスポートした楽曲数         : ${result.summary.exported_tracks}`);
+  console.log(`[${jst()}]   エクスポートした楽曲数         : ${result.summary.itunes_tracks}`);
   console.log(`[${jst()}]   Podcast のため除外した数       : ${result.summary.podcast_tracks}`);
   console.log(`[${jst()}]   重複の検出数                   : ${result.summary.duplicates}`);
   console.log(`[${jst()}]   取得時エラーがあった数         : ${result.summary.error_tracks}`);
@@ -171,7 +170,7 @@ const main = (): void => {
   if(result.summary.total_tracks === 0 && result.errors.length === 0) {  // iTunes COM 呼び出しは成功しているがライブラリが0件・後続処理をやる意味がない
     warningLog('iTunes ライブラリの総楽曲数が0件でエラーが発生していませんでした・iTunes ライブラリがリセットされているか正しく認識されていない可能性があります');
   }
-  if(result.summary.exported_tracks === 0 && result.errors.length === 0) {  // iTunes COM 呼び出しは成功しているがライブラリが0件相当・後続処理をやる意味がない
+  if(result.summary.itunes_tracks === 0 && result.errors.length === 0) {  // iTunes COM 呼び出しは成功しているがライブラリが0件相当・後続処理をやる意味がない
     warningLog('エクスポートした数が0件でエラーが発生していませんでした・iTunes ライブラリがリセットされているか正しく認識されていない可能性があります');
   }
   
@@ -190,12 +189,12 @@ const main = (): void => {
   }
   
   // 実装誤りに起因すると思われる、想定されていない Result の状態不整合もチェックしておき、万が一あったら失敗扱いとする
-  const totalCount = result.summary.exported_tracks + result.summary.podcast_tracks + result.summary.error_tracks;
+  const totalCount = result.summary.itunes_tracks + result.summary.podcast_tracks + result.summary.error_tracks;
   if(result.summary.total_tracks !== totalCount) {
     errorLog(`総処理した楽曲数カウントが不一致です・実装誤りの恐れがあります : Total ${result.summary.total_tracks}・Exported + Podcast + Error Tracks ${totalCount}・差異 ${result.summary.total_tracks - totalCount}`);
   }
-  if(result.summary.exported_tracks !== result.itunes_tracks.length) {
-    errorLog(`エクスポートした楽曲数カウントが不一致です・実装誤りの恐れがあります : Count ${result.summary.exported_tracks}・実数 ${result.itunes_tracks.length}・差異 ${result.summary.exported_tracks - result.itunes_tracks.length}`);
+  if(result.summary.itunes_tracks !== result.itunes_tracks.length) {
+    errorLog(`エクスポートした楽曲数カウントが不一致です・実装誤りの恐れがあります : Count ${result.summary.itunes_tracks}・実数 ${result.itunes_tracks.length}・差異 ${result.summary.itunes_tracks - result.itunes_tracks.length}`);
   }
   if(result.summary.duplicates !== result.duplicates.length) {
     errorLog(`重複判定したカウントが不一致です・実装誤りの恐れがあります : Count ${result.summary.duplicates}・実数 ${result.duplicates.length}・差異 ${result.summary.duplicates - result.duplicates.length}`);

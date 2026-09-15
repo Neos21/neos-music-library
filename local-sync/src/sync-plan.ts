@@ -1,24 +1,23 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { commentConflictsFileName, d1TracksFileName, extensionNameJson, itunesTracksFileName, syncPlanFileName } from './constants.js';
+import { conflictsFileName, d1TracksFileName, extensionNameJson, itunesTracksFileName, syncPlanFileName } from './constants.js';
 import { createLogDirectory } from './lib/create-log-directory.js';
 import { jst } from './lib/jst.js';
 import { serializeError } from './lib/serialize-error.js';
-import { validateCommentConflictsResult } from './lib/validate-comment-conflicts-result.js';
+import { validateConflictsResult } from './lib/validate-comment-conflicts-result.js';
 import { writeResultFile } from './lib/write-result-file.js';
 import { D1Track } from './schemas/d1-track.js';
 import { D1TracksResult } from './types/d1-tracks-result.js';
-import { ItunesTrack } from './types/itunes-track.js';
-import { ItunesTracksResult } from './types/itunes-tracks-result.js';
+import { ItunesTrack, ItunesTracksResult } from './types/itunes-tracks-result.js';
 import { Result } from './types/result.js';
-import { CommentConflictsResult, CommentDecision, MetadataDecision, SyncPlanResult } from './types/sync-plan-result.js';
+import { ConflictsResult, CommentDecision, MetadataDecision, SyncPlanResult } from './types/sync-plan-result.js';
 
 // --------------------------------------------------
-// Create Sync Plan : iTunes と D1 を突合して同期計画を組み立てる
+// Sync Plan : iTunes と D1 を突合して同期計画を組み立てる
 // --------------------------------------------------
 
-console.log(`[${jst()}] Create Sync Plan : Start`);
+console.log(`[${jst()}] Sync Plan : Start`);
 
 const logDirectoryPath = createLogDirectory();
 
@@ -62,7 +61,7 @@ const result: SyncPlanResult = {
   errors: []
 };
 
-const commentConflictsResult: CommentConflictsResult = {
+const conflictsResult: ConflictsResult = {
   executed_at: jstNow,
   status: 'no_conflicts',
   summary: {
@@ -87,7 +86,7 @@ const errorLog = (message: string, error?: unknown): void => {
 const writeResult = (): void => {
   let data;
   try {
-    data = JSON.stringify(result, null, 2) + '\n';
+    data = `${JSON.stringify(result, null, 2)}\n`;
   }
   catch(error) {
     console.error(`[${jst()}] [ERROR] 結果オブジェクトの JSON 文字列化に失敗しました・結果ファイルが出力できません`, error);
@@ -96,15 +95,15 @@ const writeResult = (): void => {
     writeResultFile(logDirectoryPath, syncPlanFileName, extensionNameJson, result.executed_at, data);
   }
   
-  let commentConflictsResultData;
+  let conflictsResultData;
   try {
-    commentConflictsResultData = JSON.stringify(commentConflictsResult, null, 2) + '\n';
+    conflictsResultData = `${JSON.stringify(conflictsResult, null, 2)}\n`;
   }
   catch(error) {
     console.error(`[${jst()}] [ERROR] コメントコンフリクト修正用オブジェクトの JSON 文字列化に失敗しました・コメントコンフリクト修正用ファイルが出力できません`, error);
   }
-  if(commentConflictsResultData != null) {
-    writeResultFile(logDirectoryPath, commentConflictsFileName, extensionNameJson, commentConflictsResult.executed_at, commentConflictsResultData);
+  if(conflictsResultData != null) {
+    writeResultFile(logDirectoryPath, conflictsFileName, extensionNameJson, conflictsResult.executed_at, conflictsResultData);
   }
 };
 
@@ -114,7 +113,7 @@ const createPersistentIdKey = (persistentIdHigh: number, persistentIdLow: number
 /** iTunes ライブラリ情報ファイルを取得して Persistent ID をキーにした Map で返す */
 const loadItunesTracks = (): Result<Map<string, ItunesTrack>> => {
   try {
-    const text = fs.readFileSync(path.resolve(logDirectoryPath, itunesTracksFileName + extensionNameJson), 'utf-8');
+    const text = fs.readFileSync(path.resolve(logDirectoryPath, `${itunesTracksFileName}${extensionNameJson}`), 'utf-8');
     const json: ItunesTracksResult = JSON.parse(text);
     
     // 最低限の続行不可能なエラーがないことをチェックする
@@ -144,7 +143,7 @@ const loadItunesTracks = (): Result<Map<string, ItunesTrack>> => {
 /** D1 楽曲情報ファイルを取得して Persistent ID をキーにした Map で返す */
 const loadD1Tracks = (): Result<Map<string, D1Track>> => {
   try {
-    const text = fs.readFileSync(path.resolve(logDirectoryPath, d1TracksFileName + extensionNameJson), 'utf-8');
+    const text = fs.readFileSync(path.resolve(logDirectoryPath, `${d1TracksFileName}${extensionNameJson}`), 'utf-8');
     const json: D1TracksResult = JSON.parse(text);
     
     // 最低限の続行不可能なエラーがないことをチェックする
@@ -161,8 +160,8 @@ const loadD1Tracks = (): Result<Map<string, D1Track>> => {
       return { error: 'Failed To Load D1 Tracks' };
     }
     
-    const d1Tracks = new Map(json.valid_tracks.map(d1Track => [createPersistentIdKey(d1Track.persistent_id_high, d1Track.persistent_id_low), d1Track]));
-    if(json.valid_tracks.length !== d1Tracks.size) {
+    const d1Tracks = new Map(json.d1_tracks.map(d1Track => [createPersistentIdKey(d1Track.persistent_id_high, d1Track.persistent_id_low), d1Track]));
+    if(json.d1_tracks.length !== d1Tracks.size) {
       errorLog('D1 楽曲情報のファイルに Persistent ID が重複している項目が出力されているようです・データ不整合の可能性があります・続行不可能と判断し処理を中断します');
       return { error: 'Failed To Load D1 Tracks' };
     }
@@ -215,7 +214,7 @@ const createCommentDecision = (itunesTrack: ItunesTrack, d1Track: D1Track): Comm
   if(importedComment === itunesComment && importedComment !== d1Comment) return {
     action          : 'update_itunes',
     imported_comment: importedComment,
-    d1_comment     : d1Comment,
+    d1_comment      : d1Comment,
     itunes_comment  : itunesComment
   };
   
@@ -286,10 +285,10 @@ const main = (): void => {
   // ファイルを読み込む
   const itunesTracksResult = loadItunesTracks();
   if(itunesTracksResult.error != null) return;
-  const itunesTracks = itunesTracksResult.result;
-  
   const d1TracksResult = loadD1Tracks();
   if(d1TracksResult.error != null) return;
+  
+  const itunesTracks = itunesTracksResult.result;
   const d1Tracks = d1TracksResult.result;
   
   // 差分を集計する
@@ -317,9 +316,9 @@ const main = (): void => {
   result.summary.operations.update_comment_d1          = result.summary.matched_tracks.comment_update_d1;
   
   // コメントコンフリクト修正用情報を書き出す
-  commentConflictsResult.status            = conflicts.length === 0 ? 'no_conflicts' : 'has_conflicts';
-  commentConflictsResult.summary.conflicts = conflicts.length;
-  commentConflictsResult.conflicts         = conflicts.map(conflict => ({
+  conflictsResult.status            = conflicts.length === 0 ? 'no_conflicts' : 'has_conflicts';
+  conflictsResult.summary.conflicts = conflicts.length;
+  conflictsResult.conflicts         = conflicts.map(conflict => ({
     d1_track_id       : conflict.d1_track_id,
     persistent_id_high: conflict.persistent_id_high,
     persistent_id_low : conflict.persistent_id_low,
@@ -341,7 +340,7 @@ const main = (): void => {
   console.log(`[${jst()}]   D1 へのメタデータ UPDATE 対象数 : ${result.summary.operations.update_metadata_d1}`);
   console.log(`[${jst()}]   iTunes へのコメント反映対象数   : ${result.summary.operations.update_comment_itunes}`);
   console.log(`[${jst()}]   D1 へのコメント UPDATE 対象数   : ${result.summary.operations.update_comment_d1}`);
-  console.log(`[${jst()}]   コメントのコンフリクト数        : ${commentConflictsResult.summary.conflicts}`);
+  console.log(`[${jst()}]   コメントのコンフリクト数        : ${conflictsResult.summary.conflicts}`);
   
   // 件数の不一致がないかチェックする
   if(result.summary.source_counts.itunes_tracks !== result.summary.reconciliation.inserts + result.summary.reconciliation.matched) errorLog('iTunes ライブラリの総楽曲件数と差分チェック結果件数が不一致です');
@@ -365,10 +364,9 @@ const main = (): void => {
   if(new Set(d1TrackIds).size !== d1TrackIds.length) errorLog('DELETE 対象とマッチした楽曲の中に D1 トラック ID が重複している楽曲があります・実装誤りの恐れがあります');
   
   // コメントコンフリクト修正用オブジェクトの状態不整合をチェックする
-  const validationResultcommentConflictsResult = validateCommentConflictsResult(commentConflictsResult);
-  if(validationResultcommentConflictsResult.error != null) errorLog(validationResultcommentConflictsResult.error);
+  const validationConflictsResult = validateConflictsResult(conflictsResult);
+  if(validationConflictsResult.error != null) errorLog(validationConflictsResult.error);
   
-  // 最後にステータスを更新する
   if(result.errors.length === 0) {
     result.status = 'success';
     console.log(`[${jst()}] 正常終了`);
@@ -385,6 +383,6 @@ const main = (): void => {
   }
   finally {
     writeResult();
-    console.log(`[${jst()}] Create Sync Plan : Finished`);
+    console.log(`[${jst()}] Sync Plan : Finished`);
   }
 })();

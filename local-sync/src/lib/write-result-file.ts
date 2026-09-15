@@ -16,25 +16,25 @@ import { pathExists } from './path-exists.js';
  */
 export const writeResultFile = (logDirectoryPath: string, fileName: string, extensionName: string, executedAtIso8601: string, data: string): void => {
   try {
-    const targetPath = path.resolve(logDirectoryPath, fileName + extensionName);
+    const targetPath = path.resolve(logDirectoryPath, `${fileName}${extensionName}`);
     if(pathExists(targetPath)) {
       // 既にファイルが存在する場合は、別名で新規ファイルを保存 → 既存ファイルをリネーム → 保存しておいた新規ファイルルをリネーム、と操作して既存ファイルの消失リスクを小さくする
       const executedAtHyphen = iso8601ToHyphen(executedAtIso8601);
-      const newFilePath = path.resolve(logDirectoryPath, fileName + '-' + executedAtHyphen + extensionName);
+      const newFilePath = path.resolve(logDirectoryPath, `${fileName}-${executedAtHyphen}${extensionName}`);
       fs.writeFileSync(newFilePath, data, 'utf-8');
       
-      const oldFilePath = path.resolve(logDirectoryPath, fileName + '-previous-' + executedAtHyphen + extensionName);  // 既存ファイル内を参照して日時を特定しても良いが値が本当にあるか分からないため持ち込んだ値を利用する
+      const oldFilePath = path.resolve(logDirectoryPath, `${fileName}-previous-${executedAtHyphen}${extensionName}`);  // 既存ファイル内を参照して日時を特定しても良いが値が本当にあるか分からないため持ち込んだ値を利用する
       fs.renameSync(targetPath, oldFilePath);
       
       fs.renameSync(newFilePath, targetPath);
-      console.log(`[${jst()}] 前回の結果ファイルをリネーム移動したうえで結果ファイル ${fileName + extensionName} を保存しました`);
+      console.log(`[${jst()}] 前回の結果ファイルをリネーム移動したうえで結果ファイル ${fileName}${extensionName} を保存しました`);
     }
     else {
       fs.writeFileSync(targetPath, data, 'utf-8');
-      console.log(`[${jst()}] 結果ファイル ${fileName + extensionName} を保存しました`);
+      console.log(`[${jst()}] 結果ファイル ${fileName}${extensionName} を保存しました`);
     }
   }
   catch(error) {
-    console.error(`[${jst()}] [ERROR] 結果ファイル ${fileName + extensionName} の出力に失敗しました`, error);
+    console.error(`[${jst()}] [ERROR] 結果ファイル ${fileName}${extensionName} の出力に失敗しました`, error);
   }
 };

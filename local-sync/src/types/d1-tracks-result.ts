@@ -1,6 +1,6 @@
 import { D1Track } from '../schemas/d1-track.js';
 
-/** Load D1 Tracks スクリプトが出力する結果ファイルの型定義 */
+/** Export D1 スクリプトが出力する結果ファイルの型定義 */
 export type D1TracksResult = {
   /** 実行日時 */
   executed_at: string;
@@ -11,12 +11,12 @@ export type D1TracksResult = {
     /** D1 から取得した総楽曲数 */
     total_tracks: number;
     /** Zod パースを通過した楽曲数 (通常は `total_tracks` と同一値になる想定) */
-    valid_tracks: number;
+    d1_tracks: number;
     /** Zod パースに失敗した楽曲数 (通常は0件の想定) */
     invalid_tracks: number;
   };
   /** D1 から取得し Zod パースを通過した楽曲情報 */
-  valid_tracks: Array<D1Track>;
+  d1_tracks: Array<D1Track>;
   /** D1 から取得し Zod パースに失敗した楽曲情報 */
   invalid_tracks: Array<Partial<D1Track> & { warning: string; }>;
   /** その他ワーニング情報 */

@@ -65,15 +65,15 @@ $ npm install
 # iTunes ライブラリをエクスポートする → `itunes-tracks.json` を出力する
 $ npm run export-itunes
 # D1 の `tracks` テーブルを取得する → `d1-tracks.json` を出力する
-$ npm run load-d1-tracks
-# `itunes-tracks.json` と `d1-tracks.json` から同期計画を組み立てる → `sync-plan.json` と `comment-conflicts.json` を出力する
-$ npm run create-sync-plan
+$ npm run export-d1
+# `itunes-tracks.json` と `d1-tracks.json` から同期計画を組み立てる → `sync-plan.json` と `conflicts.json` を出力する
+$ npm run sync-plan
 
-# コメントのコンフリクトがあった場合は `comment-conflicts.json` の `resolution` を記入する
+# コメントのコンフリクトがあった場合は `conflicts.json` の `resolution` を記入する
 
-# `sync-plan.json` と `comment-conflicts.json` を参照して iTunes にコメントを反映する → `update-itunes-comment.json` を出力する
-$ npm run update-itunes-comment
-# `sync-plan.json` と `comment-conflicts.json` と `update-itunes-comment.json` を参照して D1 に各種データを INSERT・UPDATE・DELETE する → `update-d1.json` を出力する
+# `sync-plan.json` と `conflicts.json` を参照して iTunes にコメントを反映する → `update-itunes.json` を出力する
+$ npm run update-itunes
+# `sync-plan.json` と `conflicts.json` と `update-itunes.json` を参照して D1 に各種情報を INSERT・UPDATE・DELETE する → `update-d1.json` を出力する
 $ npm run update-d1
 ```
 
@@ -88,10 +88,10 @@ $ npm run rebind
 
 ```bash
 # 前回実行結果ファイル (`-previous-` を含む JSON ファイル) を削除する
-$ npm run remove-previous-files
+$ npm run rm-prev
 
 # iTunes の全楽曲に対して `UpdateInfoFromFile()` を実行して反映する
-$ npm run update-all-itunes-info
+$ npm run update-all-itunes
 ```
 
 
