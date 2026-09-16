@@ -29,6 +29,9 @@ type LibraryState = {
   setLibraryTracks: (libraryTracks: Array<LibraryTrack>) => void;
   /** 復元処理が完了したか否かを更新する */
   setIsHydrated: () => void;
+  
+  /** コメントのみ更新する */
+  updateLibraryTrackComment: (updatedLibraryTrack: Pick<LibraryTrack, 'id' | 'comment' | 'updated_at'>) => void;
 };
 
 /** ライブラリ一覧を IndexedDB と同期する Store */
@@ -39,7 +42,20 @@ export const useLibraryStore = create<LibraryState>()(
       isHydrated: false,
       
       setLibraryTracks: (libraryTracks): void => { set({ libraryTracks }) },
-      setIsHydrated: (): void => { set({ isHydrated: true }) }
+      setIsHydrated: (): void => { set({ isHydrated: true }) },
+      
+      updateLibraryTrackComment: (updatedLibraryTrack): void => {
+        set(state => ({
+          libraryTracks: state.libraryTracks.map(libraryTrack => libraryTrack.id === updatedLibraryTrack.id
+            ? {
+                ...libraryTrack,
+                comment   : updatedLibraryTrack.comment,
+                updated_at: updatedLibraryTrack.updated_at
+              }
+            : libraryTrack
+          )
+        }));
+      }
     }),
     {
       name: 'library',

@@ -23,22 +23,22 @@ export default function Index(): ReactElement {
   
   const [password    , setPassword    ] = useState<string>('');      // パスワード
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);  // ログイン処理中か否か
-  const [errorMessage, setErrorMessage] = useState<string>('');      // エラーメッセージ
+  const [loginError  , setLoginError  ] = useState<string>('');      // エラーメッセージ
   
   /** パスワード入力時に表示中のエラーメッセージも消去する */
   const onChange = (event: ChangeEvent<HTMLInputElement>): void => {
     setPassword(event.target.value);
-    if(!isEmpty(errorMessage)) setErrorMessage('');
+    if(!isEmpty(loginError)) setLoginError('');
   };
   
   /** 入力されたパスワードを検証し、ログインに成功した場合は JWT を保存する */
   const onSubmit = async (event: SubmitEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
-    setErrorMessage('');
+    setLoginError('');
     
     const payload = { password };
     const parsed = loginSchema.safeParse(payload);
-    if(!parsed.success) return setErrorMessage(mergeIssues(parsed.error));
+    if(!parsed.success) return setLoginError(mergeIssues(parsed.error));
     
     setIsSubmitting(true);
     try {
@@ -47,7 +47,7 @@ export default function Index(): ReactElement {
       navigate('/library');
     }
     catch(error) {
-      setErrorMessage(extractApiErrorMessage(error, 'ログインに失敗しました'));
+      setLoginError(extractApiErrorMessage(error, 'ログインに失敗しました'));
       setIsSubmitting(false);
     }
   };
@@ -67,8 +67,8 @@ export default function Index(): ReactElement {
         <div className="mb-4 alert alert-soft alert-warning">再度ログインしてください</div>
       )}
       
-      {!isEmpty(errorMessage) && (
-        <div className="alert alert-soft alert-error">{errorMessage}</div>
+      {!isEmpty(loginError) && (
+        <div className="alert alert-soft alert-error">{loginError}</div>
       )}
     </main>
   );
