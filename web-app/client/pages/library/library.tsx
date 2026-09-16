@@ -1,9 +1,8 @@
 import { useEffect, useState, type ReactElement } from 'react';
 
+import { CommentCell } from './components/comment-cell';
 import { isEmpty } from '../../../shared/helpers/is-empty';
-import { commentDisplayName } from '../../../shared/schemas/track-schema';
 import { adminApi } from '../../helpers/admin-api';
-import { convertToLf } from '../../helpers/convert-to-lf';
 import { extractApiErrorMessage } from '../../helpers/extract-api-error-message';
 import { useLibraryStore } from '../../stores/library-store';
 
@@ -18,8 +17,6 @@ export default function Library(): ReactElement {
   const [listError, setListError] = useState<string>('');     // 一覧読込に失敗した場合のエラーメッセージ
   
   const [editingTrackId, setEditingTrackId] = useState<number | null>(null);  // 編集中のトラック ID
-  const [editingComment, setEditingComment] = useState<string>('');           // 編集中のコメント
-  const [isSaving      , setIsSaving      ] = useState<boolean>(false);       // 保存処理中か否か
   const [saveError     , setSaveError     ] = useState<string>('');           // 保存に失敗した場合のエラーメッセージ
   
   /** ライブラリ一覧を取得する */
@@ -52,52 +49,6 @@ export default function Library(): ReactElement {
     })();
   }, [isHydrated]);
   
-  /** コメントの編集を開始する */
-  const onStartEditComment = (libraryTrack: LibraryTrack): void => {
-    if(editingTrackId != null) return;  // 編集中の楽曲があるようなら開始させない
-    
-    setEditingTrackId(libraryTrack.id);  // トラック ID を与えることで編集開始にする
-    setEditingComment(convertToLf(libraryTrack.comment ?? ''));  // LF に変換する
-    setSaveError('');
-  };
-  
-  /** コメントを保存する */
-  const onSaveComment = async (libraryTrack: LibraryTrack): Promise<void> => {
-    if(isSaving) return;  // 保存中の場合は何もしない
-    
-    // 変更なしの場合は保存処理はせず編集を終了する
-    const originalComment = convertToLf(libraryTrack.comment ?? '');
-    if(editingComment === originalComment) {
-      setEditingTrackId(null);
-      setEditingComment('');
-      setSaveError('');
-      return;
-    }
-    
-    setIsSaving(true);
-    setSaveError('');
-    try {
-      const response = await adminApi.patch(`/api/tracks/${libraryTrack.id}`, {
-        json: {
-          comment: editingComment
-        }
-      })
-      .json<{ result: Pick<LibraryTrack, 'id' | 'comment' | 'updated_at'>; }>();
-      
-      // 更新されたコメントをストアに反映する
-      useLibraryStore.getState().updateLibraryTrackComment(response.result);
-      // 編集を終了する
-      setEditingTrackId(null);
-      setEditingComment('');
-    }
-    catch(error) {
-      setSaveError(extractApiErrorMessage(error, 'コメントの更新に失敗しました'));
-    }
-    finally {
-      setIsSaving(false);
-    }
-  };
-  
   return (
     <main className="px-2 py-4">
       {isLoading && (<div className="text-center"><span className="loading loading-spinner text-warning" /></div>)}
@@ -106,8 +57,16 @@ export default function Library(): ReactElement {
       
       {!isLoading && libraryTracks.length > 0 && (
         <div className="overflow-x-auto">
-          <table className="table table-xs">
-            <thead className="[&>tr>th]:whitespace-nowrap">  {/* eslint-disable-line neos-eslint-plugin/comment-colon-spacing */}
+          <table className="library-table">  {/* eslint-disable-line tailwindcss/no-custom-classname */}
+            <colgroup>
+              <col className="w-[20%] min-w-[10em]" />
+              <col className="w-[20%] min-w-[10em]" />
+              <col className="w-px" />
+              <col className="w-[20%] min-w-[13em]" />
+              <col className="w-[25%] min-w-[13em]" />
+              <col className="w-px" />
+            </colgroup>
+            <thead>
               <tr>
                 <th>アーティスト</th>
                 <th>アルバム</th>
@@ -117,22 +76,15 @@ export default function Library(): ReactElement {
                 <th>レパートリー</th>
               </tr>
             </thead>
-            <tbody className="[&>tr>td]:align-top">  {/* eslint-disable-line neos-eslint-plugin/comment-colon-spacing */}
+            <tbody>
               {libraryTracks.map(libraryTrack => (
                 <tr key={libraryTrack.id}>
                   <td>{libraryTrack.artist}</td>
                   <td>{libraryTrack.album}</td>
                   <td className="text-right">{libraryTrack.track_number === 0 ? '' : libraryTrack.track_number}</td>
                   <td>{libraryTrack.title}</td>
-                  <td className="whitespace-pre-wrap" onClick={() => onStartEditComment(libraryTrack)}>
-                    {editingTrackId === libraryTrack.id ? (
-                      <textarea autoFocus placeholder={commentDisplayName}
-                        value={editingComment} disabled={isSaving}
-                        onChange={event => setEditingComment(event.target.value)}
-                        onBlur={() => onSaveComment(libraryTrack)}
-                      />
-                    ) : libraryTrack.comment}
-                  </td>
+                  {/* セルに対する `useState` を持つと入力の度にテーブル全体が再描画されて遅くなるので子コンポーネントに持たせる */}
+                  <CommentCell libraryTrack={libraryTrack} editingTrackId={editingTrackId} setEditingTrackId={setEditingTrackId} setSaveError={setSaveError} />
                   <td>
                     {/* TODO : レパートリー1行の名前を表示 → モーダルで詳細表示 (編集 or 削除) */}
                     {/* TODO : レパートリー追加ボタン → モーダルで入力し新規追加 */}

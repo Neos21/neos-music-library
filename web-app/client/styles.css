@@ -26,3 +26,29 @@ body {
 .modal-box {
   max-height: calc(100svh - 1rem);
 }
+
+/** ライブラリ一覧のテーブル */
+.library-table {
+  @apply border-collapse text-sm;
+  border-top: 1px solid color-mix(in oklch, var(--color-base-content) 5%, #0000);
+  
+  & thead :is(th, td) {
+    @apply whitespace-nowrap;
+  }
+  & tbody :is(th, td) {
+    @apply align-top;
+  }
+  
+  & :is(th, td) {
+    @apply py-[.1em] px-[.3em];
+    border-right : 1px solid color-mix(in oklch, var(--color-base-content) 5%, #0000);
+    border-bottom: 1px solid color-mix(in oklch, var(--color-base-content) 5%, #0000);
+    
+    &:first-child {
+      @apply pl-0;
+    }
+    &:last-child {
+      @apply pr-0 border-r-0;
+    }
+  }
+}
