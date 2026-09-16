@@ -31,7 +31,7 @@ CREATE TABLE repertoires (  -- レパートリー
   
   part         TEXT  NOT NULL,  -- パート (`guitar`・`bass`・`vocal`・`keyboard` など)
   proficiency  TEXT,            -- 習熟度 (`planned`・`practicing`・`playable`・`mastered` など)
-  memo         TEXT,            -- 自由メモ
+  memo         TEXT,            -- メモ
   
   created_at  TEXT  NOT NULL  DEFAULT CURRENT_TIMESTAMP,  -- レコード初回作成日時
   updated_at  TEXT  NOT NULL  DEFAULT CURRENT_TIMESTAMP   -- レコード最終更新日時
@@ -44,7 +44,7 @@ CREATE TABLE repertoire_links (  -- レパートリーに紐付く URL
   type   TEXT  NOT NULL,  -- リンク種別 (`tab`・`lesson`・`reference`・`my_video`・`other` など)
   url    TEXT  NOT NULL,  -- URL
   title  TEXT  NOT NULL,  -- タイトル
-  memo   TEXT,            -- 自由メモ
+  memo   TEXT,            -- メモ
   
   created_at  TEXT  NOT NULL  DEFAULT CURRENT_TIMESTAMP,  -- レコード初回作成日時
   updated_at  TEXT  NOT NULL  DEFAULT CURRENT_TIMESTAMP   -- レコード最終更新日時

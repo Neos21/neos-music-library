@@ -1,8 +1,12 @@
 import z from 'zod';
 
+import { preprocessMultiLinesString, zodErrorMessages } from './schema-utilities';
+
+export const commentDisplayName = 'コメント' as const;
+
 /** `tracks` テーブルのスキーマ : Web アプリで編集可能なのは `comment` のみ */
 export const trackSchema = z.object({
-  /** D1 トラック ID */
+  /** トラック ID */
   id: z.number(),
   
   /** アーティスト名 */
@@ -19,15 +23,19 @@ export const trackSchema = z.object({
   /** Persistent ID Low */
   persistent_id_low: z.number(),
   
-  /** Web アプリで入力されたコメント : 入力値の Trim や改行コードの調整・`null` への調整は事前に行うこととする */
-  comment: z.string().nullable(),
+  /** Web アプリで入力されたコメント : ID3 タグとしては CR+LF だが Web 上での入力や取り扱いは LF に統一する */
+  comment : z.preprocess(
+              (value: unknown) => value == null ? null : preprocessMultiLinesString(value),
+              z.string({ error: zodErrorMessages.invalidType(commentDisplayName) })
+                .nullable()
+            ),
   /** iTunes ライブラリよりインポートしたコメント */
   imported_comment: z.string().nullable(),
   
-  /** 初回作成日時 */
-  created_at: z.string(),
-  /** 最終更新日時 */
-  updated_at: z.string()
+  /** 初回作成日時 (入力バリデーションしないので `null` と `undefined` も許容する) */
+  created_at: z.string().nullish(),
+  /** 最終更新日時 (入力バリデーションしないので `null` と `undefined` も許容する) */
+  updated_at: z.string().nullish()
 });
 
 /** `tracks` テーブルの型 */

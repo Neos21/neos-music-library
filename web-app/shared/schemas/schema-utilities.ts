@@ -1,4 +1,5 @@
 import { booleanNumberFalse, booleanNumberTrue, booleanNumberValues, booleanStringFalse, booleanStringTrue } from '../constants/boolean-constants';
+import { isEmpty } from '../helpers/is-empty';
 import { reduceNewlines } from '../helpers/reduce-newlines';
 
 import type { BooleanNumber } from '../types/utilities/boolean-types';
@@ -7,6 +8,16 @@ import type { BooleanNumber } from '../types/utilities/boolean-types';
 export const preprocessOneLineString    = (value: unknown): unknown => value == null ? '' : typeof value === 'string' ? value.trim()                 : value;
 /** 複数行テキストを Trim・空行調整する Preprocessor */
 export const preprocessMultiLinesString = (value: unknown): unknown => value == null ? '' : typeof value === 'string' ? reduceNewlines(value.trim()) : value;
+
+/** `null` 許容する Number を処理する Preprocessor */
+export const preprocessNullableNumber = (value: unknown): unknown => {
+  // `null`・`undefined`・空文字は `null` として返す
+  if(isEmpty(value)) return null;
+  
+  // 数値として変換できたらその値を返し、変換できなかった場合は元の値をそのまま返して Zod バリデーションに任せる
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? value : parsed;
+};
 
 /** Boolean に類する `value` をできるだけ Number に揃える Preprocessor */
 export const preprocessBooleanNumber = (value: unknown): unknown => {

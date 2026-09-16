@@ -51,16 +51,16 @@ export const AuthForm = (): ReactElement => {
   };
   
   return (
-    <div className="my-6 text-right">
+    <>
       {isEmpty(token) ? (
         <>
           <form onSubmit={onSubmit} className="flex gap-x-2">
             <input
               type="password" value={password} onChange={onChange} disabled={isSubmitting}
-              className="input input-sm w-full flex-1" placeholder="Password"
+              className="input w-full flex-1 input-sm" placeholder="Password"
               autoComplete="current-password"
             />
-            <button type="submit" className="btn btn-sm shrink-0" disabled={isSubmitting || isEmpty(password)}>Login</button>
+            <button type="submit" className="btn shrink-0 btn-sm" disabled={isSubmitting || isEmpty(password)}>Login</button>
           </form>
           
           {!isEmpty(errorMessage) && (
@@ -68,8 +68,10 @@ export const AuthForm = (): ReactElement => {
           )}
         </>
       ) : (
-        <button type="button" className="btn btn-sm" onClick={onLogout}>Logout</button>
+        <div className="text-right">
+          <button type="button" className="btn btn-sm" onClick={onLogout}>Logout</button>
+        </div>
       )}
-    </div>
-  )
+    </>
+  );
 };
