@@ -114,7 +114,7 @@ $ echo 'EXAMPLE_VALUE' | wrangler secret put ADMIN_JWT_SECRET --name music-libra
 Browser → React Router SPA → `/api` への HTTP リクエスト → Cloudflare Workers + Hono → Cloudflare D1 (SQLite)
 ```
 
-- React Router を SPA モードで利用し、画面遷移とログイン後の共通レイアウトを構成する
+- React Router を SPA モードで利用し、画面遷移を構成する
 - Hono の `/api` 配下に認証・各リソースのルートを登録する
 
 ### ディレクトリの責務
@@ -178,10 +178,9 @@ iTunes から楽曲が削除された場合でも `repertoires` テーブルの�
 
 ## ページ一覧
 
-| パス    | 機能                                                                         |
-|-------- |------------------------------------------------------------------------------|
-| `/`     | ログイン。ログイン済みの場合は `/home` に遷移する                            |
-| `/home` | ログイン後のホーム。共通サイドメニューはこのページへの遷移後に初めて表示する |
+| パス   | 機能         |
+|--------|--------------|
+| `/`    | トップページ |
 
 
 ## API エンドポイント一覧

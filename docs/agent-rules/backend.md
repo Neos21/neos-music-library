@@ -1,6 +1,6 @@
 # Backend Rules
 
-`server/` を変更する場合に適用する。
+`web-app/server/` を変更する場合に適用する。
 
 
 ## Repository と Service

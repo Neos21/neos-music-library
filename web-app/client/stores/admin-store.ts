@@ -31,7 +31,7 @@ export const useAdminStore = create<AdminState>()(
       // Store 名
       name: 'admin-store',
       
-      // 復元完了状態は画面表示ごとに判定するため、`partialize()` を使って LocalStorage には JWT だけを保存するようにする
+      // 復元完了状態を判定するため `partialize()` を使って LocalStorage には JWT だけを保存するようにする
       partialize: state => ({ token: state.token }),
       onRehydrateStorage: (): ((state: AdminState | undefined) => void) => (state: AdminState | undefined): void => state?.setIsHydrated()
     }

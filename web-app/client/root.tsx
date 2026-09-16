@@ -1,8 +1,6 @@
-import { type ReactElement, type ReactNode, useEffect } from 'react';
-import { isRouteErrorResponse, Link, Links, Outlet, Scripts, ScrollRestoration, useLocation, useNavigate } from 'react-router';
+import { type ReactElement, type ReactNode } from 'react';
+import { isRouteErrorResponse, Link, Links, Outlet, Scripts, ScrollRestoration } from 'react-router';
 
-import { authenticationRedirectReasonLogout, authenticationRedirectReasonReloginRequired, sessionStorageKeyAuthenticationRedirectReason } from './constants/client-constants';
-import { useAdminStore } from './stores/admin-store';
 import { isEmpty } from '../shared/helpers/is-empty';
 
 // NOTE : `$ npx react-router typegen` で `./.react-router/` 配下に出力される型定義 (開発時は自動的に出力される) を参照するのが `./+types/` という書き方 https://eiji.page/blog/react-router-dynamic-meta/
@@ -12,31 +10,6 @@ import './styles.css';
 
 /** HTML 文書としてのルートレイアウト */
 export function Layout({ children }: { children: ReactNode }): ReactElement {
-  const location = useLocation();
-  const navigate = useNavigate();
-  
-  const isHydrated = useAdminStore(state => state.isHydrated);
-  const token      = useAdminStore(state => state.token);
-  
-  // JWT の有無でログイン済か否かをチェックし適宜リダイレクトする
-  useEffect((): void => {
-    if(isHydrated !== true) return;  // LocalStorage から Store の復旧が済んでいない段階では何もしない
-    
-    const isAuthenticated = !isEmpty(token);
-    
-    if(isAuthenticated && location.pathname === '/') {  // ログイン済の場合は `/home` に移動する
-      navigate('/home', { replace: true });
-      return;
-    }
-    if(!isAuthenticated && location.pathname !== '/') {  // 未ログインの場合に `/` 以外にいる場合は `/` に移動する
-      // JWT 有効期限切れ等の理由の場合は `index.tsx` にメッセージを表示するため、必要に応じて SessionStorage に情報を記録してから遷移する
-      const redirectReason = sessionStorage.getItem(sessionStorageKeyAuthenticationRedirectReason);
-      if(redirectReason !== authenticationRedirectReasonLogout) sessionStorage.setItem(sessionStorageKeyAuthenticationRedirectReason, authenticationRedirectReasonReloginRequired);
-      navigate('/', { replace: true });
-      return;
-    }
-  }, [location.pathname, navigate, isHydrated, token]);
-  
   return (
     <html lang="ja">
       <head>

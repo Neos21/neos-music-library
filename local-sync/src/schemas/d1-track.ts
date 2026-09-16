@@ -1,6 +1,6 @@
 import z from 'zod';
 
-/** D1 の `tracks` テーブルの1レコードに相当するスキーマ */
+/** D1 の `tracks` テーブルの1レコードに相当するスキーマ・実際のテーブル定義を完全再現する必要はなく Local Sync に必要なカラムのみ定義する */
 export const d1TrackSchema = z.object({
   /** D1 トラック ID */
   id: z.number(),

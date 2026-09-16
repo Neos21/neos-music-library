@@ -27,9 +27,9 @@ Windows PC
   - MP3 ファイルへの ID3 タグの書き込み、iTunes ライブラリへの反映
   - D1 REST API を用いた D1 の CRUD
   - Rebind (iTunes ライブラリ再構築時の操作)
-↓
+↑ ↓
 Cloudflare D1
-↓
+↑ ↓
 Cloudflare Workers : Hono + React Router Web アプリ
 ```
 
@@ -57,8 +57,8 @@ iTunes・D1 間の橋渡しとして以下のような作業を行う。
 - iTunes ライブラリの全件取得
 - D1 上の楽曲情報の全件取得
 - メタデータの差分判定
-- コメント情報の iTunes への反映
 - D1 にインポートした時の旧 iTunes のコメント・Web アプリで入力されたコメント・現在の iTunes ファイルのコメントとの 3 Way マージおよびコンフリクト検出
+- コメント情報の iTunes への反映
 - D1 への INSERT・UPDATE・DELETE の実行
 - iTunes ライブラリ再構築時の Rebind (Persistent ID が変化することによる紐付け直し作業)
 

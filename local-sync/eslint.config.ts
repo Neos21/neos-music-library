@@ -54,6 +54,7 @@ export default defineConfig([
   // 検証しない除外ディレクトリ・ファイル
   {
     ignores: [
+      'logs/**',
       'node_modules/**'
     ]
   }
