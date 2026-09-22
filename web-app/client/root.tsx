@@ -46,7 +46,7 @@ export function Layout({ children }: { children: ReactNode }): ReactElement {
         <meta name="theme-color" content="#000000" />
         <meta name="description" content="Neo's Music Library" />
         <meta name="keywords" content="Neo's Music Library" />
-        <meta name="robots" content="index, follow" />
+        <meta name="robots" content="noindex, nofollow" />
         
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="Neo's Music Library" />
