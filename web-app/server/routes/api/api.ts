@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 
 import { library, libraryPath } from './library/library';
 import { login, loginPath } from './login/login';
+import { tracks, tracksPath } from './tracks/tracks';
 
 import type { HonoBindings } from '../../types/hono-bindings';
 
@@ -10,3 +11,4 @@ export const apiPath = '/api' as const;  // エンドポイントパスをイン
 
 api.route(loginPath  , login);
 api.route(libraryPath, library);
+api.route(tracksPath , tracks);

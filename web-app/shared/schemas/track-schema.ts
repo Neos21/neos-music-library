@@ -38,5 +38,8 @@ export const trackSchema = z.object({
   updated_at: z.string().nullish()
 });
 
+/** Web アプリから更新できるトラック項目 */
+export const updateTrackSchema = trackSchema.pick({ comment: true });
+
 /** `tracks` テーブルの型 */
 export type Track = z.infer<typeof trackSchema>;

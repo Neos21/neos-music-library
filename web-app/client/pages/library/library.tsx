@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactElement } from 'react';
 
-import { CommentCell } from './components/comment-cell';
+import { EditCommentModal } from './components/edit-comment-modal';
 import { isEmpty } from '../../../shared/helpers/is-empty';
 import { adminApi } from '../../helpers/admin-api';
 import { extractApiErrorMessage } from '../../helpers/extract-api-error-message';
@@ -16,16 +16,16 @@ export default function Library(): ReactElement {
   const [isLoading, setIsLoading] = useState<boolean>(true);  // 一覧読込中か否か
   const [listError, setListError] = useState<string>('');     // 一覧読込に失敗した場合のエラーメッセージ
   
-  const [editingTrackId, setEditingTrackId] = useState<number | null>(null);  // 編集中のトラック ID
-  const [saveError     , setSaveError     ] = useState<string>('');           // 保存に失敗した場合のエラーメッセージ
+  const [editingTrackId, setEditingTrackId] = useState<number | null>(null);  // 編集中のトラック ID・編集中でなければ `null`
+  const editingTrack = libraryTracks.find(libraryTrack => libraryTrack.id === editingTrackId);
   
   /** ライブラリ一覧を取得する */
-  const onLoadLibraryTracks = async (): Promise<void> => {
+  const onLoadLibraryTracks = async (isForceReload = false): Promise<void> => {
     setListError('');
     setIsLoading(true);
     
     // ストアからのキャッシュが取得できていれば (0件でなければ) API 取得はしない
-    if(useLibraryStore.getState().libraryTracks.length > 0) return setIsLoading(false);
+    if(!isForceReload && useLibraryStore.getState().libraryTracks.length > 0) return setIsLoading(false);
     
     try {
       const response = await adminApi.get('/api/library').json<{ result: Array<LibraryTrack>; }>();
@@ -45,7 +45,7 @@ export default function Library(): ReactElement {
     if(!isHydrated) return;
     // キャッシュがあればそれを表示し、キャッシュがなければ (0件なら) API から取得する
     (async () => {
-      await onLoadLibraryTracks();
+      await onLoadLibraryTracks(false);
     })();
   }, [isHydrated]);
   
@@ -53,6 +53,9 @@ export default function Library(): ReactElement {
     <main className="px-2 py-4">
       {isLoading && (<div className="text-center"><span className="loading loading-spinner text-warning" /></div>)}
       {!isEmpty(listError) && (<div className="alert alert-soft alert-error">{listError}</div>)}
+      
+      <button className="btn mb-4 btn-primary" type="button" disabled={!isHydrated || isLoading} onClick={() => onLoadLibraryTracks(true)}>再読込</button>
+      
       {!isLoading && libraryTracks.length === 0 && (<p>登録されている楽曲はありません。</p>)}
       
       {!isLoading && libraryTracks.length > 0 && (
@@ -83,8 +86,7 @@ export default function Library(): ReactElement {
                   <td>{libraryTrack.album}</td>
                   <td className="text-right">{libraryTrack.track_number === 0 ? '' : libraryTrack.track_number}</td>
                   <td>{libraryTrack.title}</td>
-                  {/* セルに対する `useState` を持つと入力の度にテーブル全体が再描画されて遅くなるので子コンポーネントに持たせる */}
-                  <CommentCell libraryTrack={libraryTrack} editingTrackId={editingTrackId} setEditingTrackId={setEditingTrackId} setSaveError={setSaveError} />
+                  <td className="whitespace-pre-wrap" onClick={() => setEditingTrackId(libraryTrack.id)}>{libraryTrack.comment}</td>
                   <td>
                     {/* TODO : レパートリー1行の名前を表示 → モーダルで詳細表示 (編集 or 削除) */}
                     {/* TODO : レパートリー追加ボタン → モーダルで入力し新規追加 */}
@@ -96,10 +98,14 @@ export default function Library(): ReactElement {
         </div>
       )}
       
-      {!isEmpty(saveError) && (
-        <div className="fixed top-2 right-2">
-          <div className="alert alert-error">{saveError}</div>
-        </div>
+      {/* コメント編集モーダル */}
+      {editingTrack != null && (
+        <EditCommentModal
+          key={editingTrack.id}
+          libraryTrack={editingTrack}
+          onClose={() => setEditingTrackId(null)}
+          onUpdated={() => onLoadLibraryTracks(true)}
+        />
       )}
     </main>
   );
