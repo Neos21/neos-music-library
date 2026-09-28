@@ -5,13 +5,15 @@ import { preprocessMultiLinesString, preprocessNullableNumber, preprocessOneLine
 import { repertoirePartValues, repertoireProficiencyValues } from '../constants/repertoire-constants';
 import { isEmpty } from '../helpers/is-empty';
 
-const repertoireIdDisplayName = 'レパートリー ID' as const;
-const trackIdDisplayName      = 'トラック ID'     as const;
-const artistDisplayName       = 'アーティスト名'  as const;
-const albumDisplayName        = 'アルバム名'      as const;
-const titleDisplayName        = '曲名'            as const;
-const partDisplayName         = 'パート'          as const;
-const memoDisplayName         = 'メモ'            as const;
+const repertoireIdDisplayName    = 'レパートリー ID'    as const;
+const trackIdDisplayName         = 'トラック ID'        as const;
+const artistDisplayName          = 'アーティスト名'     as const;
+const albumDisplayName           = 'アルバム名'         as const;
+const titleDisplayName           = '曲名'               as const;
+const partDisplayName            = 'パート'             as const;
+const proficiencyDisplayName     = '習熟度'             as const;
+const memoDisplayName            = 'メモ'               as const;
+const repertoireLinksDisplayName = 'レパートリーリンク' as const;
 
 /** `repertoires` テーブルのスキーマ : 新規登録用 */
 export const newRepertoireSchema = z.object({
@@ -49,7 +51,7 @@ export const newRepertoireSchema = z.object({
   /** 習熟度 (`null` 許容) */
   proficiency : z.preprocess(
                   value => isEmpty(value) ? null : preprocessOneLineString(value),
-                  z.enum(repertoireProficiencyValues)
+                  z.enum(repertoireProficiencyValues, { error: zodErrorMessages.generalInvalid(proficiencyDisplayName) })
                     .nullable()
                 ),
   /** メモ (複数行・`null` 許容) */
@@ -70,7 +72,7 @@ export const createRepertoireSchema = newRepertoireSchema.extend({
           return ['type', 'url', 'title', 'memo'].some(field => !isEmpty(fields[field]));
         })
       : value,
-    z.array(newRepertoireLinkSchema.omit({ repertoire_id: true }))
+    z.array(newRepertoireLinkSchema.omit({ repertoire_id: true }), { error: zodErrorMessages.invalidType(repertoireLinksDisplayName) })
   )
 });
 
