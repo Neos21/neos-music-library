@@ -4,12 +4,12 @@ import { preprocessMultiLinesString, preprocessOneLineString, zodErrorMessages }
 import { repertoireLinkTypeValues } from '../constants/repertoire-link-constants';
 import { isEmpty } from '../helpers/is-empty';
 
-export const repertoireLinkIdDisplayName = 'レパートリーリンク ID' as const;
-export const repertoireIdDisplayName     = 'レパートリー ID'       as const;
-export const typeDisplayName             = 'リンク種別'            as const;
-export const urlDisplayName              = 'URL'                   as const;
-export const titleDisplayName            = 'タイトル'              as const;
-export const memoDisplayName             = 'メモ'                  as const;
+const repertoireLinkIdDisplayName = 'レパートリーリンク ID' as const;
+const repertoireIdDisplayName     = 'レパートリー ID'       as const;
+const typeDisplayName             = 'リンク種別'            as const;
+const urlDisplayName              = 'URL'                   as const;
+const titleDisplayName            = 'タイトル'              as const;
+const memoDisplayName             = 'メモ'                  as const;
 
 /** `repertoire_links` テーブルのスキーマ : 新規登録用 */
 export const newRepertoireLinkSchema = z.object({

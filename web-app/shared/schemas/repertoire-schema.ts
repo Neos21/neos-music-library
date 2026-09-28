@@ -1,16 +1,17 @@
 import z from 'zod';
 
-import { newRepertoireLinkSchema, repertoireIdDisplayName } from './repertoire-link-schema';
+import { newRepertoireLinkSchema } from './repertoire-link-schema';
 import { preprocessMultiLinesString, preprocessNullableNumber, preprocessOneLineString, zodErrorMessages } from './schema-utilities';
 import { repertoirePartValues, repertoireProficiencyValues } from '../constants/repertoire-constants';
 import { isEmpty } from '../helpers/is-empty';
 
-export const trackIdDisplayName = 'トラック ID'    as const;
-export const artistDisplayName  = 'アーティスト名' as const;
-export const albumDisplayName   = 'アルバム名'     as const;
-export const titleDisplayName   = '曲名'           as const;
-export const partDisplayName    = 'パート'         as const;
-export const memoDisplayName    = 'メモ'           as const;
+const repertoireIdDisplayName = 'レパートリー ID' as const;
+const trackIdDisplayName      = 'トラック ID'     as const;
+const artistDisplayName       = 'アーティスト名'  as const;
+const albumDisplayName        = 'アルバム名'      as const;
+const titleDisplayName        = '曲名'            as const;
+const partDisplayName         = 'パート'          as const;
+const memoDisplayName         = 'メモ'            as const;
 
 /** `repertoires` テーブルのスキーマ : 新規登録用 */
 export const newRepertoireSchema = z.object({
@@ -59,7 +60,7 @@ export const newRepertoireSchema = z.object({
                 )
 });
 
-/** レパートリーとリンクを一括登録するリクエスト */
+/** レパートリーとレパートリーリンクを一括登録するためのスキーマ */
 export const createRepertoireSchema = newRepertoireSchema.extend({
   repertoire_links: z.preprocess(
     value => Array.isArray(value)
@@ -73,7 +74,7 @@ export const createRepertoireSchema = newRepertoireSchema.extend({
   )
 });
 
-/** レパートリーとリンクの更新入力・トラック ID は未紐付けからの紐付け時のみ指定する */
+/** レパートリーとレパートリーリンクの更新入力・トラック ID は未紐付けからの紐付け時のみ指定する */
 export const updateRepertoireSchema = createRepertoireSchema.omit({ track_id: true }).extend({
   track_id: newRepertoireSchema.shape.track_id
     .refine(trackId => trackId != null, { error: zodErrorMessages.invalidType(trackIdDisplayName) })
@@ -96,10 +97,10 @@ export const repertoireSchema = newRepertoireSchema.extend({
 });
 
 /** `repertoires` テーブルの型 : 新規登録用 */
-export type NewRepertoire = z.infer<typeof newRepertoireSchema>;
-/** レパートリーとリンクの一括登録入力 */
+export type NewRepertoire    = z.infer<typeof newRepertoireSchema>;
+/** レパートリーとレパートリーリンクの一括登録入力 */
 export type CreateRepertoire = z.infer<typeof createRepertoireSchema>;
-/** レパートリーとリンクの更新入力 */
+/** レパートリーとレパートリーリンクの更新入力 */
 export type UpdateRepertoire = z.infer<typeof updateRepertoireSchema>;
 /** `repertoires` テーブルの型 : 新規登録後 */
-export type Repertoire    = z.infer<typeof repertoireSchema>;
+export type Repertoire       = z.infer<typeof repertoireSchema>;

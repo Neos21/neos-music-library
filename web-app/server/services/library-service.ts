@@ -15,9 +15,9 @@ type Nullable<T> = {
 
 /** SQL で取得できる生のレコードを示す型 */
 type LibraryRow =
-  Prefixed<Omit<Track, 'persistent_id_high' | 'persistent_id_low'>                      , 'track'> &
-  Prefixed<Nullable<Omit<Repertoire, 'created_at' | 'updated_at'>>                      , 'repertoire'> &
-  Prefixed<Nullable<Omit<RepertoireLink, 'repertoire_id' | 'created_at' | 'updated_at'>>, 'repertoire_link'>;
+  Prefixed<Omit<Track, 'imported_comment' | 'persistent_id_high' | 'persistent_id_low' | 'created_at' | 'updated_at'> , 'track'> &
+  Prefixed<Nullable<Omit<Repertoire    ,                                                 'created_at' | 'updated_at'>>, 'repertoire'> &
+  Prefixed<Nullable<Omit<RepertoireLink, 'repertoire_id' |                               'created_at' | 'updated_at'>>, 'repertoire_link'>;
 
 /** ライブラリ情報を取得するためのサービス */
 export class LibraryService {
@@ -34,8 +34,6 @@ export class LibraryService {
           tracks.track_number      AS track_track_number,
           tracks.title             AS track_title,
           tracks.comment           AS track_comment,
-          tracks.imported_comment  AS track_imported_comment,
-          tracks.updated_at        AS track_updated_at,
           
           repertoires.id           AS repertoire_id,
           repertoires.track_id     AS repertoire_track_id,
@@ -75,15 +73,13 @@ export class LibraryService {
       let track = libraryTracksMap.get(libraryRow.track_id);
       if(track == null) {
         track = {
-          id              : libraryRow.track_id,
-          artist          : libraryRow.track_artist,
-          album           : libraryRow.track_album,
-          track_number    : libraryRow.track_track_number,
-          title           : libraryRow.track_title,
-          comment         : libraryRow.track_comment,
-          imported_comment: libraryRow.track_imported_comment,
-          updated_at      : libraryRow.track_updated_at,
-          repertoires     : []
+          id          : libraryRow.track_id,
+          artist      : libraryRow.track_artist,
+          album       : libraryRow.track_album,
+          track_number: libraryRow.track_track_number,
+          title       : libraryRow.track_title,
+          comment     : libraryRow.track_comment,
+          repertoires : []
         };
         libraryTracksMap.set(libraryRow.track_id, track);
       }
@@ -93,14 +89,14 @@ export class LibraryService {
       let repertoire = track.repertoires.find(repertoire => repertoire.id === libraryRow.repertoire_id);
       if(repertoire == null) {
         repertoire = {
-          id              : libraryRow.repertoire_id,
-          track_id        : libraryRow.repertoire_track_id,
-          artist          : libraryRow.repertoire_artist!,
-          album           : libraryRow.repertoire_album!,
-          title           : libraryRow.repertoire_title!,
-          part            : libraryRow.repertoire_part!,
-          proficiency     : libraryRow.repertoire_proficiency,
-          memo            : libraryRow.repertoire_memo,
+          id         : libraryRow.repertoire_id,
+          track_id   : libraryRow.repertoire_track_id,
+          artist     : libraryRow.repertoire_artist!,
+          album      : libraryRow.repertoire_album!,
+          title      : libraryRow.repertoire_title!,
+          part       : libraryRow.repertoire_part!,
+          proficiency: libraryRow.repertoire_proficiency,
+          memo       : libraryRow.repertoire_memo,
           repertoire_links: []
         };
         track.repertoires.push(repertoire);

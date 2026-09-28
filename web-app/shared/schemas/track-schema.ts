@@ -38,7 +38,7 @@ export const trackSchema = z.object({
   updated_at: z.string().nullish()
 });
 
-/** Web アプリから更新できるトラック項目 */
+/** Web アプリから更新できる楽曲項目 */
 export const updateTrackSchema = trackSchema.pick({ comment: true });
 
 /** `tracks` テーブルの型 */

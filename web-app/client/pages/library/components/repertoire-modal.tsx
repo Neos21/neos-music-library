@@ -37,7 +37,7 @@ type RepertoireLinkInput = {
 
 const newRepertoireLinkInput = (rowId: number): RepertoireLinkInput => ({ rowId, type: '', url: '', title: '', memo: '' });
 
-/** 編集時はレパートリー、登録時はトラックの値を初期値にする */
+/** 編集時はレパートリー、登録時は楽曲の値を初期値にする */
 const newRepertoireInput = (source: Pick<LibraryTrack, 'artist' | 'album' | 'title'> | null, repertoire: LibraryRepertoire | null): RepertoireInput => ({
   artist     : source?.artist ?? '',
   album      : source?.album ?? '',
@@ -47,36 +47,38 @@ const newRepertoireInput = (source: Pick<LibraryTrack, 'artist' | 'album' | 'tit
   memo       : repertoire?.memo ?? ''
 });
 
-/** 既存リンクを入力行に変換し、最低3行を用意する */
+/** 既存レパートリーリンクを入力行に変換し、最低3行を用意する */
 const newRepertoireLinkInputs = (repertoire: LibraryRepertoire | null): Array<RepertoireLinkInput> => {
-  const links = repertoire?.repertoire_links.map((link, rowId) => ({
+  const repertoireLinks = repertoire?.repertoire_links.map((repertoireLink, rowId) => ({
     rowId,
-    type : link.type,
-    url  : link.url,
-    title: link.title,
-    memo : link.memo ?? ''
+    type : repertoireLink.type,
+    url  : repertoireLink.url,
+    title: repertoireLink.title,
+    memo : repertoireLink.memo ?? ''
   })) ?? [];
-  return Array.from({ length: Math.max(3, links.length) }, (_, rowId) => links[rowId] ?? newRepertoireLinkInput(rowId));
+  return Array.from({ length: Math.max(3, repertoireLinks.length) }, (_, rowId) => repertoireLinks[rowId] ?? newRepertoireLinkInput(rowId));
 };
 
 /** レパートリーの登録・編集モーダル */
 export const RepertoireModal = ({ libraryTrack, libraryTracks = [], repertoire = null, onClose, onSaved }: Props): ReactElement => {
   const [repertoireInput     , setRepertoireInput     ] = useState<RepertoireInput>(() => newRepertoireInput(repertoire ?? libraryTrack, repertoire));  // レパートリーの入力値・未選択の項目は空文字
-  const [repertoireLinkInputs, setRepertoireLinkInputs] = useState<Array<RepertoireLinkInput>>(() => newRepertoireLinkInputs(repertoire));  // レパートリーリンク入力行
-  const [searchTrackId       , setSearchTrackId       ] = useState<string>('');  // トラック検索欄の入力値・空文字は未入力
-  const [searchTrackError    , setSearchTrackError    ] = useState<string>('');  // トラック検索失敗時のエラーメッセージ・空文字はエラーなし
-  const [selectedTrack       , setSelectedTrack       ] = useState<LibraryTrack | null>(null);  // 検索で確定した紐付け対象・null は未選択
-  const [isSaving            , setIsSaving            ] = useState<boolean>(false);  // 登録・更新・削除処理中か否か
-  const [saveError           , setSaveError           ] = useState<string>('');      // 処理に失敗した場合のエラーメッセージ
+  const [repertoireLinkInputs, setRepertoireLinkInputs] = useState<Array<RepertoireLinkInput>>(() => newRepertoireLinkInputs(repertoire));              // レパートリーリンク入力行
+  
+  const [searchTrackId   , setSearchTrackId   ] = useState<string>('');                 // 楽曲検索欄の入力値・空文字は未入力
+  const [searchTrackError, setSearchTrackError] = useState<string>('');                 // 楽曲検索失敗時のエラーメッセージ・空文字はエラーなし
+  const [selectedTrack   , setSelectedTrack   ] = useState<LibraryTrack | null>(null);  // 検索で確定した紐付け対象・`null` は未選択
+  
+  const [isSaving , setIsSaving ] = useState<boolean>(false);  // 登録・更新・削除処理中か否か
+  const [saveError, setSaveError] = useState<string>('');      // 処理に失敗した場合のエラーメッセージ
   
   /** レパートリー入力欄の項目を更新する */
   const onChangeRepertoire = (field: keyof RepertoireInput, value: string): void => {
-    setRepertoireInput(current => ({ ...current, [field]: value }));
+    setRepertoireInput(currentRepertoireInput => ({ ...currentRepertoireInput, [field]: value }));
   };
   
-  /** 指定したリンク入力行の項目を更新する */
+  /** 指定したレパートリーリンク入力行の項目を更新する */
   const onChangeRepertoireLink = (index: number, field: Exclude<keyof RepertoireLinkInput, 'rowId'>, value: string): void => {
-    setRepertoireLinkInputs(current => current.map((linkInput, currentIndex) => currentIndex === index ? { ...linkInput, [field]: value } : linkInput));
+    setRepertoireLinkInputs(currentRepertoireLinkInputs => currentRepertoireLinkInputs.map((currentRepertoireLinkInput, currentIndex) => currentIndex === index ? { ...currentRepertoireLinkInput, [field]: value } : currentRepertoireLinkInput));
   };
   
   /** 入力されたトラック ID をライブラリ一覧から探し、紐付け対象として確定する */
@@ -85,7 +87,7 @@ export const RepertoireModal = ({ libraryTrack, libraryTracks = [], repertoire =
     const track = Number.isInteger(trackId) && trackId > 0 ? libraryTracks.find(libraryTrack => libraryTrack.id === trackId) : null;
     if(track == null) {
       setSelectedTrack(null);
-      return setSearchTrackError('指定されたトラック ID が見つかりませんでした');
+      return setSearchTrackError('指定されたトラック ID の楽曲が見つかりませんでした');
     }
     setSelectedTrack(track);
     setSearchTrackError('');
@@ -96,10 +98,7 @@ export const RepertoireModal = ({ libraryTrack, libraryTracks = [], repertoire =
     event.preventDefault();
     if(isSaving) return;
     
-    const input = {
-      ...repertoireInput,
-      repertoire_links: repertoireLinkInputs
-    };
+    const input = { ...repertoireInput, repertoire_links: repertoireLinkInputs };
     const parsed = repertoire == null
       ? createRepertoireSchema.safeParse({ track_id: libraryTrack?.id ?? null, ...input })
       : updateRepertoireSchema.safeParse({ ...input, ...(selectedTrack == null ? {} : { track_id: selectedTrack.id }) });
@@ -153,7 +152,7 @@ export const RepertoireModal = ({ libraryTrack, libraryTracks = [], repertoire =
         <form onSubmit={onSubmit}>
           {libraryTrack != null && (
             <>
-              <h3 className="mb-2 font-bold">紐付くトラック</h3>
+              <h3 className="mb-2 font-bold">紐付く楽曲</h3>
               <dl className="mb-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
                 <dt>トラック ID</dt>
                 <dd>{libraryTrack.id}</dd>
@@ -168,18 +167,21 @@ export const RepertoireModal = ({ libraryTrack, libraryTracks = [], repertoire =
               </dl>
             </>
           )}
+          
           {libraryTrack == null && repertoire != null && (
             <>
-              <h3 className="mb-2 font-bold">トラックを紐付ける</h3>
+              <h3 className="mb-2 font-bold">楽曲を紐付ける</h3>
               <div className="mb-4 flex gap-2">
                 <label className="flex flex-col gap-1">トラック ID
                   <input className="input" type="text" inputMode="numeric" value={searchTrackId} disabled={isSaving} onChange={event => { setSearchTrackId(event.target.value); setSearchTrackError(''); }} />
                 </label>
                 <button className="btn self-end" type="button" disabled={isSaving} onClick={onSearchTrack}>検索</button>
               </div>
+              
               {!isEmpty(searchTrackError) && (
                 <div className="mb-4 alert alert-error">{searchTrackError}</div>
               )}
+              
               {selectedTrack != null && (
                 <dl className="mb-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
                   <dt>トラック ID</dt>
@@ -213,14 +215,14 @@ export const RepertoireModal = ({ libraryTrack, libraryTracks = [], repertoire =
             <label className="flex flex-col gap-1">パート
               <select className="select w-full" value={repertoireInput.part} disabled={isSaving} onChange={event => onChangeRepertoire('part', event.target.value)}>
                 <option value="">選択してください</option>
-                {repertoirePartValues.map(value => <option key={value} value={value}>{repertoirePartNames[value]}</option>)}
+                {repertoirePartValues.map(value => (<option key={value} value={value}>{repertoirePartNames[value]}</option>))}
               </select>
             </label>
             
             <label className="flex flex-col gap-1">習熟度
               <select className="select w-full" value={repertoireInput.proficiency} disabled={isSaving} onChange={event => onChangeRepertoire('proficiency', event.target.value)}>
                 <option value="">未選択</option>
-                {repertoireProficiencyValues.map(value => <option key={value} value={value}>{repertoireProficiencyNames[value]}</option>)}
+                {repertoireProficiencyValues.map(value => (<option key={value} value={value}>{repertoireProficiencyNames[value]}</option>))}
               </select>
             </label>
             
@@ -242,18 +244,18 @@ export const RepertoireModal = ({ libraryTrack, libraryTracks = [], repertoire =
                 </tr>
               </thead>
               <tbody>
-                {repertoireLinkInputs.map((linkInput, index) => (
-                  <tr key={linkInput.rowId}>
+                {repertoireLinkInputs.map((repertoireLinkInput, index) => (
+                  <tr key={repertoireLinkInput.rowId}>
                     <td>
-                      <select className="select min-w-32 select-sm" value={linkInput.type} disabled={isSaving} onChange={event => onChangeRepertoireLink(index, 'type', event.target.value)}>
+                      <select className="select min-w-32 select-sm" value={repertoireLinkInput.type} disabled={isSaving} onChange={event => onChangeRepertoireLink(index, 'type', event.target.value)}>
                         <option value="">未選択</option>
-                        {repertoireLinkTypeValues.map(value => <option key={value} value={value}>{repertoireLinkTypeNames[value]}</option>)}
+                        {repertoireLinkTypeValues.map(value => (<option key={value} value={value}>{repertoireLinkTypeNames[value]}</option>))}
                       </select>
                     </td>
-                    <td><input className="input min-w-48 input-sm" value={linkInput.url} disabled={isSaving} onChange={event => onChangeRepertoireLink(index, 'url', event.target.value)} /></td>
-                    <td><input className="input min-w-40 input-sm" value={linkInput.title} disabled={isSaving} onChange={event => onChangeRepertoireLink(index, 'title', event.target.value)} /></td>
-                    <td><textarea className="textarea min-w-40 textarea-sm" value={linkInput.memo} disabled={isSaving} rows={2} onChange={event => onChangeRepertoireLink(index, 'memo', event.target.value)} /></td>
-                    <td><button className="btn btn-sm" type="button" disabled={isSaving} onClick={() => setRepertoireLinkInputs(current => current.filter(row => row.rowId !== linkInput.rowId))}>削除</button></td>
+                    <td><input className="input min-w-48 input-sm" value={repertoireLinkInput.url} disabled={isSaving} onChange={event => onChangeRepertoireLink(index, 'url', event.target.value)} /></td>
+                    <td><input className="input min-w-40 input-sm" value={repertoireLinkInput.title} disabled={isSaving} onChange={event => onChangeRepertoireLink(index, 'title', event.target.value)} /></td>
+                    <td><textarea className="textarea min-w-40 textarea-sm" value={repertoireLinkInput.memo} disabled={isSaving} rows={2} onChange={event => onChangeRepertoireLink(index, 'memo', event.target.value)} /></td>
+                    <td><button className="btn btn-sm" type="button" disabled={isSaving} onClick={() => setRepertoireLinkInputs(current => current.filter(row => row.rowId !== repertoireLinkInput.rowId))}>削除</button></td>
                   </tr>
                 ))}
               </tbody>

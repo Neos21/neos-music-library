@@ -14,7 +14,7 @@ export const repertoiresPath = '/repertoires' as const;
 
 repertoires.use((context, next) => jwt({ secret: context.env.ADMIN_JWT_SECRET, alg: 'HS256' })(context, next));
 
-/** 指定された条件のレパートリーとリンクを取得する */
+/** 指定された条件のレパートリーとレパートリーリンクを取得する */
 repertoires.get('/', async context => {
   if(context.req.query('filter') !== 'no-track') return context.json({ error: 'フィルタが不正です' }, httpStatusCode.badRequest);
   
@@ -22,7 +22,7 @@ repertoires.get('/', async context => {
   return context.json({ result }, httpStatusCode.ok);
 });
 
-/** レパートリーとリンクを登録する */
+/** レパートリーとレパートリーリンクを登録する */
 repertoires.post('/', async context => {
   const body = await context.req.json().catch(() => null);
   if(body == null) return context.json({ error: invalidRequestBodyErrorMessage }, httpStatusCode.badRequest);
@@ -36,7 +36,7 @@ repertoires.post('/', async context => {
   return context.json({ result: { id: result.result } }, httpStatusCode.created);
 });
 
-/** レパートリーとリンクを更新する */
+/** レパートリーとレパートリーリンクを更新する */
 repertoires.put('/:id', async context => {  // eslint-disable-line neos-eslint-plugin/comment-colon-spacing
   const id = Number(context.req.param('id'));
   if(!Number.isInteger(id) || id < 1) return context.json({ error: invalidIdErrorMessage }, httpStatusCode.badRequest);
@@ -53,7 +53,7 @@ repertoires.put('/:id', async context => {  // eslint-disable-line neos-eslint-p
   return context.json({ result: { id: result.result } }, httpStatusCode.ok);
 });
 
-/** レパートリーとリンクを削除する */
+/** レパートリーとレパートリーリンクを削除する */
 repertoires.delete('/:id', async context => {  // eslint-disable-line neos-eslint-plugin/comment-colon-spacing
   const id = Number(context.req.param('id'));
   if(!Number.isInteger(id) || id < 1) return context.json({ error: invalidIdErrorMessage }, httpStatusCode.badRequest);

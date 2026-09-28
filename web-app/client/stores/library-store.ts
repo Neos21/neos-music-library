@@ -22,20 +22,20 @@ export const indexedDBStorage: StateStorage = {
 type LibraryState = {
   /** ライブラリ一覧 */
   libraryTracks: Array<LibraryTrack>;
-  /** トラックに紐付かないレパートリー一覧 */
+  /** 楽曲に紐付かないレパートリー一覧 */
   repertoiresWithoutTrack: Array<RepertoireWithoutTrack>;
   /** IndexedDB から復元が完了したか否か */
   isHydrated: boolean;
   
   /** ライブラリ一覧を保存する */
   setLibraryTracks: (libraryTracks: Array<LibraryTrack>) => void;
-  /** トラックに紐付かないレパートリー一覧を保存する */
+  /** 楽曲に紐付かないレパートリー一覧を保存する */
   setRepertoiresWithoutTrack: (repertoiresWithoutTrack: Array<RepertoireWithoutTrack>) => void;
   /** 復元処理が完了したか否かを更新する */
   setIsHydrated: () => void;
   
   /** コメントのみ更新する */
-  updateLibraryTrackComment: (updatedLibraryTrack: Pick<LibraryTrack, 'id' | 'comment' | 'updated_at'>) => void;
+  updateLibraryTrackComment: (updatedLibraryTrack: Pick<LibraryTrack, 'id' | 'comment'>) => void;
 };
 
 /** ライブラリ一覧を IndexedDB と同期する Store */
@@ -55,8 +55,7 @@ export const useLibraryStore = create<LibraryState>()(
           libraryTracks: state.libraryTracks.map(libraryTrack => libraryTrack.id === updatedLibraryTrack.id
             ? {
                 ...libraryTrack,
-                comment   : updatedLibraryTrack.comment,
-                updated_at: updatedLibraryTrack.updated_at
+                comment: updatedLibraryTrack.comment
               }
             : libraryTrack
           )

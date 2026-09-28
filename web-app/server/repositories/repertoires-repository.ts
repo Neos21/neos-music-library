@@ -26,7 +26,7 @@ export class RepertoiresRepository {
       .bind(repertoire.artist, repertoire.album, repertoire.title, repertoire.part, repertoire.proficiency, repertoire.memo, id);
   }
   
-  /** 未紐付けのレパートリーにトラックを紐付ける文を作る */
+  /** 未紐付けのレパートリーに楽曲を紐付ける文を作る */
   public prepareLinkTrack(id: number, trackId: number): D1PreparedStatement {
     return this.db
       .prepare('UPDATE repertoires SET track_id = ? WHERE id = ? AND track_id IS NULL')

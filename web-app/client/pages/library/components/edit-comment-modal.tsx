@@ -16,7 +16,7 @@ type Props = {
   onUpdated: () => void;
 };
 
-/** トラックのコメント編集モーダル */
+/** 楽曲のコメント編集モーダル */
 export const EditCommentModal = ({ libraryTrack, onClose, onUpdated }: Props): ReactElement => {
   const [editingComment, setEditingComment] = useState<string>(() => convertToLf(libraryTrack.comment ?? ''));  // 編集中のコメント
   const [isSaving      , setIsSaving      ] = useState<boolean>(false);                                         // 保存処理中か否か
@@ -33,9 +33,7 @@ export const EditCommentModal = ({ libraryTrack, onClose, onUpdated }: Props): R
     setIsSaving(true);
     setSaveError('');
     try {
-      const response = await adminApi.patch(`/api/tracks/${libraryTrack.id}`, {
-        json: parsed.data
-      }).json<{ result: Pick<LibraryTrack, 'id' | 'comment' | 'updated_at'>; }>();
+      const response = await adminApi.patch(`/api/tracks/${libraryTrack.id}`, { json: parsed.data }).json<{ result: Pick<LibraryTrack, 'id' | 'comment'>; }>();
       
       useLibraryStore.getState().updateLibraryTrackComment(response.result);
       onClose();

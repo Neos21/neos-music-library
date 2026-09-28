@@ -11,30 +11,40 @@ import { useLibraryStore } from '../../stores/library-store';
 
 import type { LibraryTrack, RepertoireWithoutTrack } from '../../../shared/types/app/library-track';
 
+/** 今開いているモーダルの種別 */
 type ActiveModal =
-  | { type: 'comment' | 'repertoire-create'; trackId: number; }
-  | { type: 'repertoire-edit'; trackId: number; repertoireId: number; }
-  | { type: 'repertoire-create-standalone'; }
-  | { type: 'repertoire-edit-standalone'; repertoireId: number; }
+  | { type: 'comment'                     ; trackId: number;                       }
+  | { type: 'repertoire-create'           ; trackId: number;                       }
+  | { type: 'repertoire-edit'             ; trackId: number; repertoireId: number; }
+  | { type: 'repertoire-create-standalone';                                        }
+  | { type: 'repertoire-edit-standalone'  ;                  repertoireId: number; }
   | null;
+
+/** アーティスト名・アルバム名・曲名を大文字小文字を区別せず検索する */
+const matchesSearch = (item: Pick<LibraryTrack, 'artist' | 'album' | 'title'>, searchText: string): boolean => (item.artist ?? '').toLowerCase().includes(searchText) || (item.album ?? '').toLowerCase().includes(searchText) || item.title.toLowerCase().includes(searchText);
 
 /** ライブラリ一覧 */
 export default function Library(): ReactElement {
-  const isHydrated    = useLibraryStore(state => state.isHydrated);
-  const libraryTracks = useLibraryStore(state => state.libraryTracks);
+  // Store から取得した値
+  const isHydrated              = useLibraryStore(state => state.isHydrated);
+  const libraryTracks           = useLibraryStore(state => state.libraryTracks);
   const repertoiresWithoutTrack = useLibraryStore(state => state.repertoiresWithoutTrack);
   
-  const [isLoading, setIsLoading] = useState<boolean>(true);  // 一覧読込中か否か
-  const [listError, setListError] = useState<string>('');     // 一覧読込に失敗した場合のエラーメッセージ
+  // 本画面の State
+  const [isLoading  , setIsLoading  ] = useState<boolean>(true);      // 一覧読込中か否か
+  const [listError  , setListError  ] = useState<string>('');         // 一覧読込に失敗した場合のエラーメッセージ
+  const [searchQuery, setSearchQuery] = useState<string>('');         // 一覧の検索入力値・空文字は全件表示
+  const [activeModal, setActiveModal] = useState<ActiveModal>(null);  // 表示中のモーダル・楽曲単位の場合は ID を保持し、閉じていれば `null`
   
-  const [activeModal, setActiveModal] = useState<ActiveModal>(null);  // 表示中のモーダル・トラック単位の場合は ID を保持し、閉じていれば `null`
-  const activeTrack = activeModal == null || !('trackId' in activeModal) ? null : libraryTracks.find(libraryTrack => libraryTrack.id === activeModal.trackId);
-  const activeRepertoire = activeModal?.type === 'repertoire-edit'
-    ? activeTrack?.repertoires.find(repertoire => repertoire.id === activeModal.repertoireId)
-    : null;
-  const activeStandaloneRepertoire = activeModal?.type === 'repertoire-edit-standalone'
-    ? repertoiresWithoutTrack.find(repertoire => repertoire.id === activeModal.repertoireId)
-    : null;
+  // 検索文字列の処理とフィルタリングした一覧
+  const searchText = searchQuery.trim().toLowerCase();
+  const filteredLibraryTracks           = isEmpty(searchText) ? libraryTracks           : libraryTracks.filter(libraryTrack => matchesSearch(libraryTrack, searchText));
+  const filteredRepertoiresWithoutTrack = isEmpty(searchText) ? repertoiresWithoutTrack : repertoiresWithoutTrack.filter(repertoireWithoutTrack => matchesSearch(repertoireWithoutTrack, searchText));
+  
+  // モーダルの管理
+  const activeTrack                = activeModal == null || !('trackId' in activeModal) ? null : libraryTracks.find(libraryTrack => libraryTrack.id === activeModal.trackId);
+  const activeRepertoire           = activeModal?.type === 'repertoire-edit'            ? activeTrack?.repertoires.find(repertoire => repertoire.id === activeModal.repertoireId)                        : null;
+  const activeStandaloneRepertoire = activeModal?.type === 'repertoire-edit-standalone' ? repertoiresWithoutTrack.find(repertoireWithoutTrack => repertoireWithoutTrack.id === activeModal.repertoireId) : null;
   
   /** ライブラリ一覧を取得する */
   const onLoadLibraryTracks = async (isForceReload = false): Promise<void> => {
@@ -42,7 +52,7 @@ export default function Library(): ReactElement {
     setIsLoading(true);
     
     const { libraryTracks, repertoiresWithoutTrack } = useLibraryStore.getState();
-    const shouldLoadLibraryTracks = isForceReload || libraryTracks.length === 0;
+    const shouldLoadLibraryTracks           = isForceReload || libraryTracks.length           === 0;
     const shouldLoadRepertoiresWithoutTrack = isForceReload || repertoiresWithoutTrack.length === 0;
     if(!shouldLoadLibraryTracks && !shouldLoadRepertoiresWithoutTrack) return setIsLoading(false);
     
@@ -74,6 +84,7 @@ export default function Library(): ReactElement {
     setIsLoading(false);
   };
   
+  // 画面初期表示時
   useEffect(() => {
     // IndexedDB からの復元が終わっていない間は何もしない
     if(!isHydrated) return;
@@ -86,12 +97,18 @@ export default function Library(): ReactElement {
   return (
     <main className="px-2 py-4">
       {isLoading && (<div className="text-center"><span className="loading loading-spinner text-warning" /></div>)}
-      {!isEmpty(listError) && (<div className="alert alert-soft alert-error">{listError}</div>)}
+      
+      {!isEmpty(listError) && (
+        <div className="alert alert-soft alert-error">{listError}</div>
+      )}
       
       <div className="mb-4 flex gap-2">
         <button className="btn btn-primary" type="button" disabled={!isHydrated || isLoading} onClick={() => onLoadLibraryTracks(true)}>再読込</button>
         <button className="btn" type="button" onClick={() => setActiveModal({ type: 'repertoire-create-standalone' })}>レパートリー追加</button>
       </div>
+      <label className="mb-4 flex flex-col gap-1">検索
+        <input className="input w-full max-w-md" type="search" value={searchQuery} onChange={event => setSearchQuery(event.target.value)} />
+      </label>
       
       {!isLoading && libraryTracks.length === 0 && (<p className="mb-4">登録されている楽曲はありません。</p>)}
       {!isLoading && libraryTracks.length > 0 && (
@@ -116,7 +133,10 @@ export default function Library(): ReactElement {
               </tr>
             </thead>
             <tbody>
-              {libraryTracks.map(libraryTrack => (
+              {!isEmpty(searchText) && filteredLibraryTracks.length === 0 && (
+                <tr><td colSpan={6}>該当する楽曲はありません。</td></tr>
+              )}
+              {filteredLibraryTracks.map(libraryTrack => (
                 <tr key={libraryTrack.id}>
                   <td>{libraryTrack.artist}</td>
                   <td>{libraryTrack.album}</td>
@@ -144,7 +164,7 @@ export default function Library(): ReactElement {
       )}
       
       <h2 className="mb-2 text-lg font-bold">レパートリー</h2>
-      {!isLoading && repertoiresWithoutTrack.length === 0 && (<p>トラックに紐付かないレパートリーはありません。</p>)}
+      {!isLoading && repertoiresWithoutTrack.length === 0 && (<p>楽曲に紐付かないレパートリーはありません。</p>)}
       {!isLoading && repertoiresWithoutTrack.length > 0 && (
         <div className="overflow-x-auto">
           <table className="library-table">  {/* eslint-disable-line tailwindcss/no-custom-classname */}
@@ -161,7 +181,10 @@ export default function Library(): ReactElement {
               </tr>
             </thead>
             <tbody>
-              {repertoiresWithoutTrack.map(repertoire => (
+              {!isEmpty(searchText) && filteredRepertoiresWithoutTrack.length === 0 && (
+                <tr><td colSpan={8}>該当するレパートリーはありません。</td></tr>
+              )}
+              {filteredRepertoiresWithoutTrack.map(repertoire => (
                 <tr key={repertoire.id}>
                   <td>{repertoire.artist}</td>
                   <td>{repertoire.album}</td>
@@ -170,9 +193,9 @@ export default function Library(): ReactElement {
                   <td>{repertoire.proficiency == null ? '' : repertoireProficiencyNames[repertoire.proficiency]}</td>
                   <td className="whitespace-pre-wrap">{repertoire.memo}</td>
                   <td>
-                    {repertoire.repertoire_links.map(link => (
-                      <div key={link.id}>
-                        {repertoireLinkTypeNames[link.type]}: <a className="link" href={link.url} target="_blank" rel="noreferrer">{link.title}</a>
+                    {repertoire.repertoire_links.map(repertoireLink => (
+                      <div key={repertoireLink.id}>
+                        {repertoireLinkTypeNames[repertoireLink.type]}: <a className="link" href={repertoireLink.url} target="_blank" rel="noreferrer">{repertoireLink.title}</a>
                       </div>
                     ))}
                   </td>
@@ -184,7 +207,6 @@ export default function Library(): ReactElement {
         </div>
       )}
       
-      {/* コメント編集モーダル */}
       {activeModal?.type === 'comment' && activeTrack != null && (
         <EditCommentModal
           key={activeTrack.id}

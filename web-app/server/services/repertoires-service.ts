@@ -7,7 +7,7 @@ import type { CreateRepertoire, Repertoire, UpdateRepertoire } from '../../share
 import type { RepertoireWithoutTrack } from '../../shared/types/app/library-track';
 import type { Result } from '../../shared/types/utilities/result';
 
-/** トラックなしレパートリーとリンクを結合した取得行 */
+/** 楽曲に紐付かないレパートリーとレパートリーリンクを結合した取得行 */
 type RepertoireWithoutTrackRow = Omit<Repertoire, 'track_id' | 'created_at' | 'updated_at'> & {
   repertoire_link_id   : number | null;
   repertoire_link_type : RepertoireLink['type'] | null;
@@ -16,11 +16,11 @@ type RepertoireWithoutTrackRow = Omit<Repertoire, 'track_id' | 'created_at' | 'u
   repertoire_link_memo : string | null;
 };
 
-/** レパートリーとリンクの登録・更新・削除を扱う Service */
+/** レパートリーとレパートリーレパートリーリンクの登録・更新・削除を扱う Service */
 export class RepertoiresService {
   constructor(private readonly db: D1Database) { }
   
-  /** トラックに紐付かないレパートリーとリンクを一覧取得する */
+  /** 楽曲に紐付かないレパートリーとリンクを一覧取得する */
   public async findWithoutTrack(): Promise<Array<RepertoireWithoutTrack>> {
     const result = await this.db
       .prepare(`
@@ -83,11 +83,11 @@ export class RepertoiresService {
     return [...repertoiresMap.values()];
   }
   
-  /** トラックの存在を確認し、レパートリーとリンクを一括登録する */
+  /** 楽曲の存在を確認し、レパートリーとレパートリーリンクを一括登録する */
   public async create(repertoire: CreateRepertoire): Promise<Result<number>> {
     if(repertoire.track_id != null) {
       const track = await new TracksRepository(this.db).findById(repertoire.track_id);
-      if(track == null) return { error: '紐付くトラックが存在しません' };
+      if(track == null) return { error: '紐付く楽曲が存在しません' };
     }
     
     const repertoireStatement = new RepertoiresRepository(this.db).prepareCreate(repertoire);
@@ -97,15 +97,15 @@ export class RepertoiresService {
     return { result: results[0]!.meta.last_row_id };
   }
   
-  /** レパートリーを更新し、リンクを入力内容で入れ替える */
+  /** レパートリーを更新し、レパートリーリンクを入力内容で入れ替える */
   public async update(id: number, repertoire: UpdateRepertoire): Promise<Result<number>> {
     const repertoiresRepository = new RepertoiresRepository(this.db);
     const existingRepertoire = await repertoiresRepository.findById(id);
     if(existingRepertoire == null) return { error: 'レパートリーが存在しません' };
     if(repertoire.track_id !== undefined) {
       if(repertoire.track_id == null) return { error: '紐付くトラック ID が不正です' };
-      if(existingRepertoire.track_id != null) return { error: '紐付くトラックは変更できません' };
-      if(await new TracksRepository(this.db).findById(repertoire.track_id) == null) return { error: '紐付くトラックが存在しません' };
+      if(existingRepertoire.track_id != null) return { error: '紐付く楽曲は変更できません' };
+      if(await new TracksRepository(this.db).findById(repertoire.track_id) == null) return { error: '紐付く楽曲が存在しません' };
     }
     
     const repertoireLinksRepository = new RepertoireLinksRepository(this.db);
@@ -118,7 +118,7 @@ export class RepertoiresService {
     return { result: id };
   }
   
-  /** レパートリーと紐付くリンクを削除する */
+  /** レパートリーと紐付くレパートリーリンクを削除する */
   public async delete(id: number): Promise<Result<number>> {
     const repertoiresRepository = new RepertoiresRepository(this.db);
     if(await repertoiresRepository.findById(id) == null) return { error: 'レパートリーが存在しません' };

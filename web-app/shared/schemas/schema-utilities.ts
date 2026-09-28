@@ -1,8 +1,5 @@
-import { booleanNumberFalse, booleanNumberTrue, booleanNumberValues, booleanStringFalse, booleanStringTrue } from '../constants/boolean-constants';
 import { isEmpty } from '../helpers/is-empty';
 import { reduceNewlines } from '../helpers/reduce-newlines';
-
-import type { BooleanNumber } from '../types/utilities/boolean-types';
 
 /** 1行テキストを Trim する Preprocessor */
 export const preprocessOneLineString    = (value: unknown): unknown => value == null ? '' : typeof value === 'string' ? value.trim()                 : value;
@@ -17,19 +14,6 @@ export const preprocessNullableNumber = (value: unknown): unknown => {
   // 数値として変換できたらその値を返し、変換できなかった場合は元の値をそのまま返して Zod バリデーションに任せる
   const parsed = Number(value);
   return Number.isNaN(parsed) ? value : parsed;
-};
-
-/** Boolean に類する `value` をできるだけ Number に揃える Preprocessor */
-export const preprocessBooleanNumber = (value: unknown): unknown => {
-  if(typeof value === 'number') return booleanNumberValues.includes(value as BooleanNumber) ? value : value;
-  if(typeof value === 'boolean') return value ? booleanNumberTrue : booleanNumberFalse;
-  if(typeof value === 'string') {
-    const normalized = value.trim().toLowerCase();
-    if([booleanStringTrue , 'true' ].includes(normalized)) return booleanNumberTrue;
-    if([booleanStringFalse, 'false'].includes(normalized)) return booleanNumberFalse;
-    return value;
-  }
-  return value;
 };
 
 /** エラーメッセージを組み立てる際、項目名の先頭・末尾が英数字だった場合のみスペースを入れる関数 */
