@@ -1,5 +1,7 @@
 # Neo's Music Library
 
+<https://music-library.neos21.workers.dev>
+
 Windows iTunes のライブラリ情報を Cloudflare D1 と同期し、Web アプリ上で以下を管理する個人用アプリ。
 
 - 楽曲情報 (アーティスト名・アルバム名・トラック番号・曲名)
