@@ -49,11 +49,11 @@ export const EditCommentModal = ({ libraryTrack, onClose, onUpdated }: Props): R
   
   return (
     <div className="modal modal-open">
-      <div className="modal-box">
+      <div className="modal-box max-w-4xl p-4">
         <h2 className="mb-4 text-lg font-bold">コメントを編集する</h2>
         
         <form onSubmit={onSubmit}>
-          <dl className="mb-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
+          <dl className="mb-2 grid grid-cols-[auto_1fr] gap-2 text-xs">
             <dt>トラック ID</dt>
             <dd>{libraryTrack.id}</dd>
             <dt>アーティスト</dt>
@@ -66,24 +66,26 @@ export const EditCommentModal = ({ libraryTrack, onClose, onUpdated }: Props): R
             <dd>{libraryTrack.title}</dd>
           </dl>
           
-          <label className="mb-2 block">{commentDisplayName}</label>
-          <textarea
-            className="textarea mb-4 w-full"
-            placeholder="コメント"
-            value={editingComment}
-            disabled={isSaving}
-            onChange={event => setEditingComment(event.target.value)}
-            rows={6}
-            autoFocus
-          />
+          <fieldset className="mb-4 fieldset">
+            <label className="fieldset-label">{commentDisplayName}</label>
+            <textarea
+              className="textarea w-full textarea-sm"
+              placeholder="コメント"
+              value={editingComment}
+              disabled={isSaving}
+              onChange={event => setEditingComment(event.target.value)}
+              rows={6}
+              autoFocus
+            />
+          </fieldset>
           
           {!isEmpty(saveError) && (
-            <div className="mb-4 alert alert-error">{saveError}</div>
+            <div className="mb-4 alert alert-soft alert-error">{saveError}</div>
           )}
           
           <div className="modal-action justify-between">
             <button className="btn" type="button" disabled={isSaving} onClick={onClose}>キャンセル</button>
-            <button className="btn btn-primary" type="submit" disabled={isSaving}>更新する</button>
+            <button className="btn btn-info" type="submit" disabled={isSaving}>更新する</button>
           </div>
         </form>
       </div>

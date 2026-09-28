@@ -99,20 +99,19 @@ export default function Library(): ReactElement {
       {isLoading && (<div className="text-center"><span className="loading loading-spinner text-warning" /></div>)}
       
       {!isEmpty(listError) && (
-        <div className="alert alert-soft alert-error">{listError}</div>
+        <div className="mb-4 alert alert-soft alert-error">{listError}</div>
       )}
       
-      <div className="mb-4 flex gap-2">
-        <button className="btn btn-primary" type="button" disabled={!isHydrated || isLoading} onClick={() => onLoadLibraryTracks(true)}>再読込</button>
-        <button className="btn" type="button" onClick={() => setActiveModal({ type: 'repertoire-create-standalone' })}>レパートリー追加</button>
-      </div>
-      <label className="mb-4 flex flex-col gap-1">検索
-        <input className="input w-full max-w-md" type="search" value={searchQuery} onChange={event => setSearchQuery(event.target.value)} />
-      </label>
+      {!isLoading && (
+        <div className="mb-4 flex gap-2">
+          <input className="input w-full input-sm" type="search" placeholder="検索" value={searchQuery} onChange={event => setSearchQuery(event.target.value)} />
+          <button className="btn btn-info btn-sm" type="button" disabled={!isHydrated || isLoading} onClick={() => onLoadLibraryTracks(true)}>再読込</button>
+        </div>
+      )}
       
-      {!isLoading && libraryTracks.length === 0 && (<p className="mb-4">登録されている楽曲はありません。</p>)}
+      {!isLoading && libraryTracks.length === 0 && (<p className="mb-6 text-sm">登録されている楽曲はありません。</p>)}
       {!isLoading && libraryTracks.length > 0 && (
-        <div className="mb-4 overflow-x-auto">
+        <div className="mb-6 overflow-x-auto">
           <table className="library-table">  {/* eslint-disable-line tailwindcss/no-custom-classname */}
             <colgroup>
               <col className="w-[20%] min-w-[10em]" />
@@ -140,20 +139,18 @@ export default function Library(): ReactElement {
                 <tr key={libraryTrack.id}>
                   <td>{libraryTrack.artist}</td>
                   <td>{libraryTrack.album}</td>
-                  <td className="text-right">{libraryTrack.track_number === 0 ? '' : libraryTrack.track_number}</td>
+                  <td className="text-right whitespace-nowrap">{libraryTrack.track_number === 0 ? '-' : libraryTrack.track_number}</td>
                   <td>{libraryTrack.title}</td>
-                  <td className="whitespace-pre-wrap" onClick={() => setActiveModal({ type: 'comment', trackId: libraryTrack.id })}>{libraryTrack.comment}</td>
+                  <td className="cursor-pointer whitespace-pre-wrap hover:bg-zinc-100" onClick={() => setActiveModal({ type: 'comment', trackId: libraryTrack.id })}>{libraryTrack.comment}</td>
                   <td>
-                    <div className="flex flex-wrap gap-1">
-                      {libraryTrack.repertoires.map(repertoire => (
-                        <button
-                          key={repertoire.id}
-                          className="btn btn-ghost btn-xs"
-                          type="button"
-                          onClick={() => setActiveModal({ type: 'repertoire-edit', trackId: libraryTrack.id, repertoireId: repertoire.id })}
-                        >{repertoirePartNames[repertoire.part]}</button>
-                      ))}
-                      <button className="btn btn-sm" type="button" onClick={() => setActiveModal({ type: 'repertoire-create', trackId: libraryTrack.id })}>レパートリー追加</button>
+                    {libraryTrack.repertoires.map(repertoire => (
+                      <div key={repertoire.id}
+                        className="w-full link link-info no-underline hover:underline"
+                        onClick={() => setActiveModal({ type: 'repertoire-edit', trackId: libraryTrack.id, repertoireId: repertoire.id })}
+                      >{repertoirePartNames[repertoire.part]}</div>
+                    ))}
+                    <div className="text-right text-zinc-700">
+                      <span className="cursor-pointer hover:underline" onClick={() => setActiveModal({ type: 'repertoire-create', trackId: libraryTrack.id })}>追加</span>
                     </div>
                   </td>
                 </tr>
@@ -163,11 +160,20 @@ export default function Library(): ReactElement {
         </div>
       )}
       
-      <h2 className="mb-2 text-lg font-bold">レパートリー</h2>
-      {!isLoading && repertoiresWithoutTrack.length === 0 && (<p>楽曲に紐付かないレパートリーはありません。</p>)}
+      {!isLoading && repertoiresWithoutTrack.length === 0 && (<p className="mb-4 text-sm">楽曲に紐付かないレパートリーはありません。</p>)}
       {!isLoading && repertoiresWithoutTrack.length > 0 && (
-        <div className="overflow-x-auto">
+        <div className="mb-4 overflow-x-auto">
           <table className="library-table">  {/* eslint-disable-line tailwindcss/no-custom-classname */}
+            <colgroup>
+              <col className="w-[20%] min-w-[10em]" />
+              <col className="w-[20%] min-w-[10em]" />
+              <col className="w-[20%] min-w-[10em]" />
+              <col className="w-[10%] min-w-[8em]" />
+              <col className="w-[10%] min-w-[8em]" />
+              <col className="w-[10%] min-w-[8em]" />
+              <col className="w-[15%] min-w-[8em]" />
+              <col className="w-px" />
+            </colgroup>
             <thead>
               <tr>
                 <th>アーティスト</th>
@@ -190,20 +196,26 @@ export default function Library(): ReactElement {
                   <td>{repertoire.album}</td>
                   <td>{repertoire.title}</td>
                   <td>{repertoirePartNames[repertoire.part]}</td>
-                  <td>{repertoire.proficiency == null ? '' : repertoireProficiencyNames[repertoire.proficiency]}</td>
+                  <td>{repertoire.proficiency == null ? '-' : repertoireProficiencyNames[repertoire.proficiency]}</td>
                   <td className="whitespace-pre-wrap">{repertoire.memo}</td>
                   <td>
                     {repertoire.repertoire_links.map(repertoireLink => (
                       <div key={repertoireLink.id}>
-                        {repertoireLinkTypeNames[repertoireLink.type]}: <a className="link" href={repertoireLink.url} target="_blank" rel="noreferrer">{repertoireLink.title}</a>
+                        {repertoireLinkTypeNames[repertoireLink.type]} <a className="link link-info" href={repertoireLink.url} target="_blank" rel="noreferrer">{repertoireLink.title}</a>
                       </div>
                     ))}
                   </td>
-                  <td><button className="btn btn-sm" type="button" onClick={() => setActiveModal({ type: 'repertoire-edit-standalone', repertoireId: repertoire.id })}>編集</button></td>
+                  <td className="whitespace-nowrap"><button className="btn btn-xs" type="button" onClick={() => setActiveModal({ type: 'repertoire-edit-standalone', repertoireId: repertoire.id })}>編集</button></td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+      
+      {!isLoading && (
+        <div className="mb-4 text-right">
+          <button className="btn btn-sm btn-success" type="button" onClick={() => setActiveModal({ type: 'repertoire-create-standalone' })}>レパートリー追加</button>
         </div>
       )}
       

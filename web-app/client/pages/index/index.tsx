@@ -57,7 +57,7 @@ export default function Index(): ReactElement {
       <form onSubmit={onSubmit} className="mb-4 flex gap-x-2">
         <input
           type="password" value={password} onChange={onChange} disabled={isSubmitting}
-          className="input w-full flex-1 input-sm" placeholder="Password"
+          className="input w-full flex-1 input-sm" placeholder="Neo's Music Library"
           autoComplete="current-password"
         />
         <button type="submit" className="btn shrink-0 btn-sm" disabled={isSubmitting || isEmpty(password)}>Login</button>
