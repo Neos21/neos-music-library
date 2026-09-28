@@ -2,6 +2,7 @@ import z from 'zod';
 
 import { newRepertoireLinkSchema, repertoireIdDisplayName } from './repertoire-link-schema';
 import { preprocessMultiLinesString, preprocessNullableNumber, preprocessOneLineString, zodErrorMessages } from './schema-utilities';
+import { repertoirePartValues, repertoireProficiencyValues } from '../constants/repertoire-constants';
 import { isEmpty } from '../helpers/is-empty';
 
 export const trackIdDisplayName = 'トラック ID'    as const;
@@ -42,12 +43,12 @@ export const newRepertoireSchema = z.object({
   /** パート */
   part        : z.preprocess(
                   preprocessOneLineString,
-                  z.enum(['guitar', 'bass', 'vocal', 'keyboard', 'other'], { error: zodErrorMessages.empty(partDisplayName) })
+                  z.enum(repertoirePartValues, { error: zodErrorMessages.empty(partDisplayName) })
                 ),
   /** 習熟度 (`null` 許容) */
   proficiency : z.preprocess(
                   value => isEmpty(value) ? null : preprocessOneLineString(value),
-                  z.enum(['planned', 'practicing', 'playable', 'mastered'])
+                  z.enum(repertoireProficiencyValues)
                     .nullable()
                 ),
   /** メモ (複数行・`null` 許容) */

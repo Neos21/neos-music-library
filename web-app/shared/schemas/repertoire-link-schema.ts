@@ -1,6 +1,7 @@
 import z from 'zod';
 
 import { preprocessMultiLinesString, preprocessOneLineString, zodErrorMessages } from './schema-utilities';
+import { repertoireLinkTypeValues } from '../constants/repertoire-link-constants';
 import { isEmpty } from '../helpers/is-empty';
 
 export const repertoireLinkIdDisplayName = 'レパートリーリンク ID' as const;
@@ -22,7 +23,7 @@ export const newRepertoireLinkSchema = z.object({
   /** リンク種別 */
   type          : z.preprocess(
                     preprocessOneLineString,
-                    z.enum(['tab', 'lesson', 'reference', 'my_video', 'other'], { error: zodErrorMessages.empty(typeDisplayName) })
+                    z.enum(repertoireLinkTypeValues, { error: zodErrorMessages.empty(typeDisplayName) })
                   ),
   /** URL */
   url           : z.preprocess(

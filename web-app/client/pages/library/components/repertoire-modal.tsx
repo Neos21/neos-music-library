@@ -1,5 +1,7 @@
 import { useState, type ReactElement, type SubmitEvent } from 'react';
 
+import { repertoirePartNames, repertoirePartValues, repertoireProficiencyNames, repertoireProficiencyValues } from '../../../../shared/constants/repertoire-constants';
+import { repertoireLinkTypeNames, repertoireLinkTypeValues } from '../../../../shared/constants/repertoire-link-constants';
 import { isEmpty } from '../../../../shared/helpers/is-empty';
 import { mergeIssues } from '../../../../shared/helpers/merge-issues';
 import { createRepertoireSchema } from '../../../../shared/schemas/repertoire-schema';
@@ -127,21 +129,14 @@ export const RepertoireModal = ({ libraryTrack, onClose, onSaved }: Props): Reac
             <label className="flex flex-col gap-1">パート
               <select className="select w-full" value={repertoireInput.part} disabled={isSaving} onChange={event => onChangeRepertoire('part', event.target.value)}>
                 <option value="">選択してください</option>
-                <option value="guitar">ギター</option>
-                <option value="bass">ベース</option>
-                <option value="vocal">歌 (カラオケ)</option>
-                <option value="keyboard">キーボード</option>
-                <option value="other">その他</option>
+                {repertoirePartValues.map(value => <option key={value} value={value}>{repertoirePartNames[value]}</option>)}
               </select>
             </label>
             
             <label className="flex flex-col gap-1">習熟度
               <select className="select w-full" value={repertoireInput.proficiency} disabled={isSaving} onChange={event => onChangeRepertoire('proficiency', event.target.value)}>
                 <option value="">未選択</option>
-                <option value="planned">練習したい</option>
-                <option value="practicing">練習中</option>
-                <option value="playable">多少できる</option>
-                <option value="mastered">マスター</option>
+                {repertoireProficiencyValues.map(value => <option key={value} value={value}>{repertoireProficiencyNames[value]}</option>)}
               </select>
             </label>
             
@@ -168,11 +163,7 @@ export const RepertoireModal = ({ libraryTrack, onClose, onSaved }: Props): Reac
                     <td>
                       <select className="select min-w-32 select-sm" value={linkInput.type} disabled={isSaving} onChange={event => onChangeRepertoireLink(index, 'type', event.target.value)}>
                         <option value="">未選択</option>
-                        <option value="tab">タブ譜</option>
-                        <option value="lesson">教則</option>
-                        <option value="reference">ライブ</option>
-                        <option value="my_video">自分</option>
-                        <option value="other">その他</option>
+                        {repertoireLinkTypeValues.map(value => <option key={value} value={value}>{repertoireLinkTypeNames[value]}</option>)}
                       </select>
                     </td>
                     <td><input className="input min-w-48 input-sm" value={linkInput.url} disabled={isSaving} onChange={event => onChangeRepertoireLink(index, 'url', event.target.value)} /></td>
