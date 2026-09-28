@@ -3,18 +3,6 @@
 React Router (SPA モード) + Hono + Cloudflare Workers で構成された Web アプリ。
 
 
-## サンプルコード
-
-サンプルコードには `example`・`examples` の命名・記載がある他、隅付き括弧を用いたプレースホルダを記載している。
-
-### 主な説明用サンプルファイル (実コードからは削除して良い)
-
-- `server/repositories/examples-repository.ts`
-- `server/routes/api/examples/`
-- `shared/schemas/example-schema.ts`
-- `shared/types/entities/example.ts`
-
-
 ## 技術スタック
 
 - フロントエンド : React + React Router (SPA モード)
@@ -193,12 +181,3 @@ iTunes から楽曲が削除された場合でも `repertoires` テーブルの�
 | サンプル | `POST`   | `/api/examples`     | 追加する                            |
 | サンプル | `PATCH`  | `/api/examples/:id` | 更新する                            |
 | サンプル | `DELETE` | `/api/examples/:id` | 削除する                            |
-
-
-## メンテナンス
-
-開発者向けの保守メモを示す。
-
-### 既知の警告
-
-現状、ビルド時に Wrangler から `envFile` の非推奨警告が表示される。現時点ではビルドを失敗させるものではないため無視して良い。別の互換性対応と合わせて見直す。

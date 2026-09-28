@@ -63,7 +63,7 @@ export const EditCommentModal = ({ libraryTrack, onClose, onUpdated }: Props): R
             <dt>アルバム</dt>
             <dd>{libraryTrack.album}</dd>
             <dt>トラック番号</dt>
-            <dd>{libraryTrack.track_number === 0 ? '' : libraryTrack.track_number}</dd>
+            <dd>{libraryTrack.track_number === 0 ? '-' : libraryTrack.track_number}</dd>
             <dt>曲名</dt>
             <dd>{libraryTrack.title}</dd>
           </dl>

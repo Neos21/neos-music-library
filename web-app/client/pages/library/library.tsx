@@ -1,12 +1,15 @@
 import { useEffect, useState, type ReactElement } from 'react';
 
 import { EditCommentModal } from './components/edit-comment-modal';
+import { RepertoireModal } from './components/repertoire-modal';
 import { isEmpty } from '../../../shared/helpers/is-empty';
 import { adminApi } from '../../helpers/admin-api';
 import { extractApiErrorMessage } from '../../helpers/extract-api-error-message';
 import { useLibraryStore } from '../../stores/library-store';
 
 import type { LibraryTrack } from '../../../shared/types/app/library-track';
+
+type ActiveModal = { type: 'comment'; trackId: number; } | { type: 'repertoire-create'; trackId: number; } | null;
 
 /** ライブラリ一覧 */
 export default function Library(): ReactElement {
@@ -16,8 +19,8 @@ export default function Library(): ReactElement {
   const [isLoading, setIsLoading] = useState<boolean>(true);  // 一覧読込中か否か
   const [listError, setListError] = useState<string>('');     // 一覧読込に失敗した場合のエラーメッセージ
   
-  const [editingTrackId, setEditingTrackId] = useState<number | null>(null);  // 編集中のトラック ID・編集中でなければ `null`
-  const editingTrack = libraryTracks.find(libraryTrack => libraryTrack.id === editingTrackId);
+  const [activeModal, setActiveModal] = useState<ActiveModal>(null);  // 表示中のモーダルと対象トラック ID・閉じていれば `null`
+  const activeTrack = activeModal == null ? null : libraryTracks.find(libraryTrack => libraryTrack.id === activeModal.trackId);
   
   /** ライブラリ一覧を取得する */
   const onLoadLibraryTracks = async (isForceReload = false): Promise<void> => {
@@ -86,10 +89,10 @@ export default function Library(): ReactElement {
                   <td>{libraryTrack.album}</td>
                   <td className="text-right">{libraryTrack.track_number === 0 ? '' : libraryTrack.track_number}</td>
                   <td>{libraryTrack.title}</td>
-                  <td className="whitespace-pre-wrap" onClick={() => setEditingTrackId(libraryTrack.id)}>{libraryTrack.comment}</td>
+                  <td className="whitespace-pre-wrap" onClick={() => setActiveModal({ type: 'comment', trackId: libraryTrack.id })}>{libraryTrack.comment}</td>
                   <td>
                     {/* TODO : レパートリー1行の名前を表示 → モーダルで詳細表示 (編集 or 削除) */}
-                    {/* TODO : レパートリー追加ボタン → モーダルで入力し新規追加 */}
+                    <button className="btn btn-sm" type="button" onClick={() => setActiveModal({ type: 'repertoire-create', trackId: libraryTrack.id })}>レパートリー追加</button>
                   </td>
                 </tr>
               ))}
@@ -99,12 +102,20 @@ export default function Library(): ReactElement {
       )}
       
       {/* コメント編集モーダル */}
-      {editingTrack != null && (
+      {activeModal?.type === 'comment' && activeTrack != null && (
         <EditCommentModal
-          key={editingTrack.id}
-          libraryTrack={editingTrack}
-          onClose={() => setEditingTrackId(null)}
+          key={activeTrack.id}
+          libraryTrack={activeTrack}
+          onClose={() => setActiveModal(null)}
           onUpdated={() => onLoadLibraryTracks(true)}
+        />
+      )}
+      {activeModal?.type === 'repertoire-create' && activeTrack != null && (
+        <RepertoireModal
+          key={activeTrack.id}
+          libraryTrack={activeTrack}
+          onClose={() => setActiveModal(null)}
+          onSaved={() => onLoadLibraryTracks(true)}
         />
       )}
     </main>

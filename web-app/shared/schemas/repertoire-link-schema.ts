@@ -1,10 +1,10 @@
 import z from 'zod';
 
-import { repertoireIdDisplayName } from './repertoire-schema';
 import { preprocessMultiLinesString, preprocessOneLineString, zodErrorMessages } from './schema-utilities';
 import { isEmpty } from '../helpers/is-empty';
 
 export const repertoireLinkIdDisplayName = 'レパートリーリンク ID' as const;
+export const repertoireIdDisplayName     = 'レパートリー ID'       as const;
 export const typeDisplayName             = 'リンク種別'            as const;
 export const urlDisplayName              = 'URL'                   as const;
 export const titleDisplayName            = 'タイトル'              as const;
@@ -22,8 +22,7 @@ export const newRepertoireLinkSchema = z.object({
   /** リンク種別 */
   type          : z.preprocess(
                     preprocessOneLineString,
-                    z.string({ error: zodErrorMessages.invalidType(typeDisplayName) })
-                      .min(1, { error: zodErrorMessages.empty(typeDisplayName) })
+                    z.enum(['tab', 'lesson', 'reference', 'my_video', 'other'], { error: zodErrorMessages.empty(typeDisplayName) })
                   ),
   /** URL */
   url           : z.preprocess(
@@ -39,7 +38,7 @@ export const newRepertoireLinkSchema = z.object({
                   ),
   /** メモ (複数行・`null` 許容) */
   memo          : z.preprocess(
-                    preprocessMultiLinesString,
+                    value => isEmpty(value) ? null : preprocessMultiLinesString(value),
                     z.string({ error: zodErrorMessages.invalidType(memoDisplayName) })
                       .nullable()
                   )

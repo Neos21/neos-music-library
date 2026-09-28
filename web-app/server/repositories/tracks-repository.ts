@@ -6,6 +6,11 @@ import type { Track } from '../../shared/schemas/track-schema';
 export class TracksRepository {
   constructor(private readonly db: D1Database) { }
   
+  /** 指定した ID のトラックが存在するか確認する */
+  public async findById(id: number): Promise<Pick<Track, 'id'> | null> {
+    return await this.db.prepare('SELECT id FROM tracks WHERE id = ? LIMIT 1').bind(id).first<Pick<Track, 'id'>>();
+  }
+  
   /** コメントを更新し、対象が存在しない場合は `null` を返す */
   public async update(id: number, comment: Track['comment']): Promise<Pick<Track, 'id' | 'comment' | 'updated_at'> | null> {
     return await this.db

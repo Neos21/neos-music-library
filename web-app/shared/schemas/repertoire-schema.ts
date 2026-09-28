@@ -1,15 +1,15 @@
 import z from 'zod';
 
+import { newRepertoireLinkSchema, repertoireIdDisplayName } from './repertoire-link-schema';
 import { preprocessMultiLinesString, preprocessNullableNumber, preprocessOneLineString, zodErrorMessages } from './schema-utilities';
 import { isEmpty } from '../helpers/is-empty';
 
-export const repertoireIdDisplayName = 'レパートリー ID' as const;
-export const trackIdDisplayName      = 'トラック ID'     as const;
-export const artistDisplayName       = 'アーティスト名'  as const;
-export const albumDisplayName        = 'アルバム名'      as const;
-export const titleDisplayName        = '曲名'            as const;
-export const partDisplayName         = 'パート'          as const;
-export const memoDisplayName         = 'メモ'            as const;
+export const trackIdDisplayName = 'トラック ID'    as const;
+export const artistDisplayName  = 'アーティスト名' as const;
+export const albumDisplayName   = 'アルバム名'     as const;
+export const titleDisplayName   = '曲名'           as const;
+export const partDisplayName    = 'パート'         as const;
+export const memoDisplayName    = 'メモ'           as const;
 
 /** `repertoires` テーブルのスキーマ : 新規登録用 */
 export const newRepertoireSchema = z.object({
@@ -17,6 +17,8 @@ export const newRepertoireSchema = z.object({
   track_id    : z.preprocess(
                   preprocessNullableNumber,
                   z.number({ error: zodErrorMessages.invalidType(trackIdDisplayName) })
+                    .int({ error: zodErrorMessages.integer(trackIdDisplayName) })
+                    .min(1, { error: zodErrorMessages.minimumNumber(trackIdDisplayName, 1) })
                     .nullable()
                 ),
   /** アーティスト名 */
@@ -40,21 +42,34 @@ export const newRepertoireSchema = z.object({
   /** パート */
   part        : z.preprocess(
                   preprocessOneLineString,
-                  z.string({ error: zodErrorMessages.invalidType(titleDisplayName) })
-                    .min(1, { error: zodErrorMessages.empty(titleDisplayName) })
+                  z.enum(['guitar', 'bass', 'vocal', 'keyboard', 'other'], { error: zodErrorMessages.empty(partDisplayName) })
                 ),
   /** 習熟度 (`null` 許容) */
   proficiency : z.preprocess(
-                  preprocessOneLineString,
-                  z.string({ error: zodErrorMessages.invalidType(titleDisplayName) })
+                  value => isEmpty(value) ? null : preprocessOneLineString(value),
+                  z.enum(['planned', 'practicing', 'playable', 'mastered'])
                     .nullable()
                 ),
   /** メモ (複数行・`null` 許容) */
   memo        : z.preprocess(
-                  preprocessMultiLinesString,
+                  value => isEmpty(value) ? null : preprocessMultiLinesString(value),
                   z.string({ error: zodErrorMessages.invalidType(memoDisplayName) })
                     .nullable()
                 )
+});
+
+/** レパートリーとリンクを一括登録するリクエスト */
+export const createRepertoireSchema = newRepertoireSchema.extend({
+  repertoire_links: z.preprocess(
+    value => Array.isArray(value)
+      ? value.filter(link => {
+          if(link == null || typeof link !== 'object' || Array.isArray(link)) return true;
+          const fields = link as Record<string, unknown>;
+          return ['type', 'url', 'title', 'memo'].some(field => !isEmpty(fields[field]));
+        })
+      : value,
+    z.array(newRepertoireLinkSchema.omit({ repertoire_id: true }))
+  )
 });
 
 /** `repertoires` テーブルのスキーマ : 新規登録後 */
@@ -74,5 +89,7 @@ export const repertoireSchema = newRepertoireSchema.extend({
 
 /** `repertoires` テーブルの型 : 新規登録用 */
 export type NewRepertoire = z.infer<typeof newRepertoireSchema>;
+/** レパートリーとリンクの一括登録入力 */
+export type CreateRepertoire = z.infer<typeof createRepertoireSchema>;
 /** `repertoires` テーブルの型 : 新規登録後 */
 export type Repertoire    = z.infer<typeof repertoireSchema>;

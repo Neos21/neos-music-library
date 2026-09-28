@@ -26,7 +26,7 @@ tracks.patch('/:id', async context => {  // eslint-disable-line neos-eslint-plug
   if(!parsed.success) return context.json({ error: mergeIssues(parsed.error) }, httpStatusCode.badRequest);
   
   const track = await new TracksRepository(context.env.DB).update(id, parsed.data.comment);
-  if(track == null) return context.json({ error: 'データが存在しません' }, httpStatusCode.notFound);
+  if(track == null) return context.json({ error: 'コメントの更新に失敗しました' }, httpStatusCode.notFound);
   
   return context.json({ result: track }, httpStatusCode.ok);
 });
