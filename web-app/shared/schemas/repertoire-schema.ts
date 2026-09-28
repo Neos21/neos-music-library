@@ -73,8 +73,12 @@ export const createRepertoireSchema = newRepertoireSchema.extend({
   )
 });
 
-/** レパートリーとリンクの更新入力・紐付くトラック ID は変更しない */
-export const updateRepertoireSchema = createRepertoireSchema.omit({ track_id: true });
+/** レパートリーとリンクの更新入力・トラック ID は未紐付けからの紐付け時のみ指定する */
+export const updateRepertoireSchema = createRepertoireSchema.omit({ track_id: true }).extend({
+  track_id: newRepertoireSchema.shape.track_id
+    .refine(trackId => trackId != null, { error: zodErrorMessages.invalidType(trackIdDisplayName) })
+    .optional()
+});
 
 /** `repertoires` テーブルのスキーマ : 新規登録後 */
 export const repertoireSchema = newRepertoireSchema.extend({

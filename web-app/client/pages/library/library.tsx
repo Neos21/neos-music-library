@@ -15,6 +15,7 @@ type ActiveModal =
   | { type: 'comment' | 'repertoire-create'; trackId: number; }
   | { type: 'repertoire-edit'; trackId: number; repertoireId: number; }
   | { type: 'repertoire-create-standalone'; }
+  | { type: 'repertoire-edit-standalone'; repertoireId: number; }
   | null;
 
 /** ライブラリ一覧 */
@@ -30,6 +31,9 @@ export default function Library(): ReactElement {
   const activeTrack = activeModal == null || !('trackId' in activeModal) ? null : libraryTracks.find(libraryTrack => libraryTrack.id === activeModal.trackId);
   const activeRepertoire = activeModal?.type === 'repertoire-edit'
     ? activeTrack?.repertoires.find(repertoire => repertoire.id === activeModal.repertoireId)
+    : null;
+  const activeStandaloneRepertoire = activeModal?.type === 'repertoire-edit-standalone'
+    ? repertoiresWithoutTrack.find(repertoire => repertoire.id === activeModal.repertoireId)
     : null;
   
   /** ライブラリ一覧を取得する */
@@ -153,6 +157,7 @@ export default function Library(): ReactElement {
                 <th>習熟度</th>
                 <th>メモ</th>
                 <th>リンク</th>
+                <th>編集</th>
               </tr>
             </thead>
             <tbody>
@@ -171,6 +176,7 @@ export default function Library(): ReactElement {
                       </div>
                     ))}
                   </td>
+                  <td><button className="btn btn-sm" type="button" onClick={() => setActiveModal({ type: 'repertoire-edit-standalone', repertoireId: repertoire.id })}>編集</button></td>
                 </tr>
               ))}
             </tbody>
@@ -207,6 +213,16 @@ export default function Library(): ReactElement {
       {activeModal?.type === 'repertoire-create-standalone' && (
         <RepertoireModal
           libraryTrack={null}
+          onClose={() => setActiveModal(null)}
+          onSaved={() => onLoadLibraryTracks(true)}
+        />
+      )}
+      {activeModal?.type === 'repertoire-edit-standalone' && activeStandaloneRepertoire != null && (
+        <RepertoireModal
+          key={activeStandaloneRepertoire.id}
+          libraryTrack={null}
+          libraryTracks={libraryTracks}
+          repertoire={activeStandaloneRepertoire}
           onClose={() => setActiveModal(null)}
           onSaved={() => onLoadLibraryTracks(true)}
         />

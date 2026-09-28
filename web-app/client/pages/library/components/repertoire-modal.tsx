@@ -12,6 +12,7 @@ import type { LibraryRepertoire, LibraryTrack } from '../../../../shared/types/a
 
 type Props = {
   libraryTrack: LibraryTrack | null;
+  libraryTracks?: Array<LibraryTrack>;
   repertoire?: LibraryRepertoire | null;
   onClose: () => void;
   onSaved: () => void;
@@ -59,9 +60,12 @@ const newRepertoireLinkInputs = (repertoire: LibraryRepertoire | null): Array<Re
 };
 
 /** レパートリーの登録・編集モーダル */
-export const RepertoireModal = ({ libraryTrack, repertoire = null, onClose, onSaved }: Props): ReactElement => {
+export const RepertoireModal = ({ libraryTrack, libraryTracks = [], repertoire = null, onClose, onSaved }: Props): ReactElement => {
   const [repertoireInput     , setRepertoireInput     ] = useState<RepertoireInput>(() => newRepertoireInput(repertoire ?? libraryTrack, repertoire));  // レパートリーの入力値・未選択の項目は空文字
   const [repertoireLinkInputs, setRepertoireLinkInputs] = useState<Array<RepertoireLinkInput>>(() => newRepertoireLinkInputs(repertoire));  // レパートリーリンク入力行
+  const [searchTrackId       , setSearchTrackId       ] = useState<string>('');  // トラック検索欄の入力値・空文字は未入力
+  const [searchTrackError    , setSearchTrackError    ] = useState<string>('');  // トラック検索失敗時のエラーメッセージ・空文字はエラーなし
+  const [selectedTrack       , setSelectedTrack       ] = useState<LibraryTrack | null>(null);  // 検索で確定した紐付け対象・null は未選択
   const [isSaving            , setIsSaving            ] = useState<boolean>(false);  // 登録・更新・削除処理中か否か
   const [saveError           , setSaveError           ] = useState<string>('');      // 処理に失敗した場合のエラーメッセージ
   
@@ -75,6 +79,18 @@ export const RepertoireModal = ({ libraryTrack, repertoire = null, onClose, onSa
     setRepertoireLinkInputs(current => current.map((linkInput, currentIndex) => currentIndex === index ? { ...linkInput, [field]: value } : linkInput));
   };
   
+  /** 入力されたトラック ID をライブラリ一覧から探し、紐付け対象として確定する */
+  const onSearchTrack = (): void => {
+    const trackId = Number(searchTrackId);
+    const track = Number.isInteger(trackId) && trackId > 0 ? libraryTracks.find(libraryTrack => libraryTrack.id === trackId) : null;
+    if(track == null) {
+      setSelectedTrack(null);
+      return setSearchTrackError('指定されたトラック ID が見つかりませんでした');
+    }
+    setSelectedTrack(track);
+    setSearchTrackError('');
+  };
+  
   /** レパートリーを登録または更新する */
   const onSubmit = async (event: SubmitEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
@@ -86,7 +102,7 @@ export const RepertoireModal = ({ libraryTrack, repertoire = null, onClose, onSa
     };
     const parsed = repertoire == null
       ? createRepertoireSchema.safeParse({ track_id: libraryTrack?.id ?? null, ...input })
-      : updateRepertoireSchema.safeParse(input);
+      : updateRepertoireSchema.safeParse({ ...input, ...(selectedTrack == null ? {} : { track_id: selectedTrack.id }) });
     if(!parsed.success) return setSaveError(mergeIssues(parsed.error));
     
     setIsSaving(true);
@@ -150,6 +166,34 @@ export const RepertoireModal = ({ libraryTrack, repertoire = null, onClose, onSa
                 <dt>曲名</dt>
                 <dd>{libraryTrack.title}</dd>
               </dl>
+            </>
+          )}
+          {libraryTrack == null && repertoire != null && (
+            <>
+              <h3 className="mb-2 font-bold">トラックを紐付ける</h3>
+              <div className="mb-4 flex gap-2">
+                <label className="flex flex-col gap-1">トラック ID
+                  <input className="input" type="text" inputMode="numeric" value={searchTrackId} disabled={isSaving} onChange={event => { setSearchTrackId(event.target.value); setSearchTrackError(''); }} />
+                </label>
+                <button className="btn self-end" type="button" disabled={isSaving} onClick={onSearchTrack}>検索</button>
+              </div>
+              {!isEmpty(searchTrackError) && (
+                <div className="mb-4 alert alert-error">{searchTrackError}</div>
+              )}
+              {selectedTrack != null && (
+                <dl className="mb-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
+                  <dt>トラック ID</dt>
+                  <dd>{selectedTrack.id}</dd>
+                  <dt>アーティスト名</dt>
+                  <dd>{selectedTrack.artist}</dd>
+                  <dt>アルバム名</dt>
+                  <dd>{selectedTrack.album}</dd>
+                  <dt>トラック番号</dt>
+                  <dd>{selectedTrack.track_number === 0 ? '-' : selectedTrack.track_number}</dd>
+                  <dt>曲名</dt>
+                  <dd>{selectedTrack.title}</dd>
+                </dl>
+              )}
             </>
           )}
           

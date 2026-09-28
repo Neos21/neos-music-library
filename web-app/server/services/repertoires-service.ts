@@ -100,11 +100,18 @@ export class RepertoiresService {
   /** レパートリーを更新し、リンクを入力内容で入れ替える */
   public async update(id: number, repertoire: UpdateRepertoire): Promise<Result<number>> {
     const repertoiresRepository = new RepertoiresRepository(this.db);
-    if(await repertoiresRepository.findById(id) == null) return { error: 'レパートリーが存在しません' };
+    const existingRepertoire = await repertoiresRepository.findById(id);
+    if(existingRepertoire == null) return { error: 'レパートリーが存在しません' };
+    if(repertoire.track_id !== undefined) {
+      if(repertoire.track_id == null) return { error: '紐付くトラック ID が不正です' };
+      if(existingRepertoire.track_id != null) return { error: '紐付くトラックは変更できません' };
+      if(await new TracksRepository(this.db).findById(repertoire.track_id) == null) return { error: '紐付くトラックが存在しません' };
+    }
     
     const repertoireLinksRepository = new RepertoireLinksRepository(this.db);
     await this.db.batch([
       repertoiresRepository.prepareUpdate(id, repertoire),
+      ...(repertoire.track_id == null ? [] : [repertoiresRepository.prepareLinkTrack(id, repertoire.track_id)]),
       repertoireLinksRepository.prepareDeleteByRepertoireId(id),
       ...repertoire.repertoire_links.map(repertoireLink => repertoireLinksRepository.prepareCreate(id, repertoireLink))
     ]);

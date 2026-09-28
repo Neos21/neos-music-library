@@ -26,6 +26,13 @@ export class RepertoiresRepository {
       .bind(repertoire.artist, repertoire.album, repertoire.title, repertoire.part, repertoire.proficiency, repertoire.memo, id);
   }
   
+  /** 未紐付けのレパートリーにトラックを紐付ける文を作る */
+  public prepareLinkTrack(id: number, trackId: number): D1PreparedStatement {
+    return this.db
+      .prepare('UPDATE repertoires SET track_id = ? WHERE id = ? AND track_id IS NULL')
+      .bind(trackId, id);
+  }
+  
   /** レパートリーを削除する文を作る */
   public prepareDelete(id: number): D1PreparedStatement {
     return this.db.prepare('DELETE FROM repertoires WHERE id = ?').bind(id);
