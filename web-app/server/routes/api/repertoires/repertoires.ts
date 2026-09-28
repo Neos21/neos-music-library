@@ -14,6 +14,14 @@ export const repertoiresPath = '/repertoires' as const;
 
 repertoires.use((context, next) => jwt({ secret: context.env.ADMIN_JWT_SECRET, alg: 'HS256' })(context, next));
 
+/** 指定された条件のレパートリーとリンクを取得する */
+repertoires.get('/', async context => {
+  if(context.req.query('filter') !== 'no-track') return context.json({ error: 'フィルタが不正です' }, httpStatusCode.badRequest);
+  
+  const result = await new RepertoiresService(context.env.DB).findWithoutTrack();
+  return context.json({ result }, httpStatusCode.ok);
+});
+
 /** レパートリーとリンクを登録する */
 repertoires.post('/', async context => {
   const body = await context.req.json().catch(() => null);

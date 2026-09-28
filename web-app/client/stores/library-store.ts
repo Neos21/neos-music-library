@@ -2,7 +2,7 @@ import { get, set, del } from 'idb-keyval';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import type { LibraryTrack } from '../../shared/types/app/library-track';
+import type { LibraryTrack, RepertoireWithoutTrack } from '../../shared/types/app/library-track';
 import type { StateStorage } from 'zustand/middleware';
 
 /** IndexedDB を操作するストレージ定義 */
@@ -22,11 +22,15 @@ export const indexedDBStorage: StateStorage = {
 type LibraryState = {
   /** ライブラリ一覧 */
   libraryTracks: Array<LibraryTrack>;
+  /** トラックに紐付かないレパートリー一覧 */
+  repertoiresWithoutTrack: Array<RepertoireWithoutTrack>;
   /** IndexedDB から復元が完了したか否か */
   isHydrated: boolean;
   
   /** ライブラリ一覧を保存する */
   setLibraryTracks: (libraryTracks: Array<LibraryTrack>) => void;
+  /** トラックに紐付かないレパートリー一覧を保存する */
+  setRepertoiresWithoutTrack: (repertoiresWithoutTrack: Array<RepertoireWithoutTrack>) => void;
   /** 復元処理が完了したか否かを更新する */
   setIsHydrated: () => void;
   
@@ -39,9 +43,11 @@ export const useLibraryStore = create<LibraryState>()(
   persist(
     set => ({
       libraryTracks: [],
+      repertoiresWithoutTrack: [],
       isHydrated: false,
       
       setLibraryTracks: (libraryTracks): void => { set({ libraryTracks }) },
+      setRepertoiresWithoutTrack: (repertoiresWithoutTrack): void => { set({ repertoiresWithoutTrack }) },
       setIsHydrated: (): void => { set({ isHydrated: true }) },
       
       updateLibraryTrackComment: (updatedLibraryTrack): void => {
@@ -61,7 +67,7 @@ export const useLibraryStore = create<LibraryState>()(
       name: 'library',
       storage: createJSONStorage(() => indexedDBStorage),
       
-      partialize: state => ({ libraryTracks: state.libraryTracks }),
+      partialize: state => ({ libraryTracks: state.libraryTracks, repertoiresWithoutTrack: state.repertoiresWithoutTrack }),
       onRehydrateStorage: (): ((state: LibraryState | undefined) => void) => (state: LibraryState | undefined): void => state?.setIsHydrated()
     }
   )
