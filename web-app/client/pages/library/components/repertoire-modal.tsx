@@ -4,14 +4,15 @@ import { repertoirePartNames, repertoirePartValues, repertoireProficiencyNames, 
 import { repertoireLinkTypeNames, repertoireLinkTypeValues } from '../../../../shared/constants/repertoire-link-constants';
 import { isEmpty } from '../../../../shared/helpers/is-empty';
 import { mergeIssues } from '../../../../shared/helpers/merge-issues';
-import { createRepertoireSchema } from '../../../../shared/schemas/repertoire-schema';
+import { createRepertoireSchema, updateRepertoireSchema } from '../../../../shared/schemas/repertoire-schema';
 import { adminApi } from '../../../helpers/admin-api';
 import { extractApiErrorMessage } from '../../../helpers/extract-api-error-message';
 
-import type { LibraryTrack } from '../../../../shared/types/app/library-track';
+import type { LibraryRepertoire, LibraryTrack } from '../../../../shared/types/app/library-track';
 
 type Props = {
   libraryTrack: LibraryTrack | null;
+  repertoire?: LibraryRepertoire | null;
   onClose: () => void;
   onSaved: () => void;
 };
@@ -35,22 +36,34 @@ type RepertoireLinkInput = {
 
 const newRepertoireLinkInput = (rowId: number): RepertoireLinkInput => ({ rowId, type: '', url: '', title: '', memo: '' });
 
-/** トラックの値を初期値にした入力欄を作る・紐付かない場合は空欄にする */
-const newRepertoireInput = (source: Pick<LibraryTrack, 'artist' | 'album' | 'title'> | null): RepertoireInput => ({
+/** 編集時はレパートリー、登録時はトラックの値を初期値にする */
+const newRepertoireInput = (source: Pick<LibraryTrack, 'artist' | 'album' | 'title'> | null, repertoire: LibraryRepertoire | null): RepertoireInput => ({
   artist     : source?.artist ?? '',
   album      : source?.album ?? '',
   title      : source?.title ?? '',
-  part       : '',
-  proficiency: '',
-  memo       : ''
+  part       : repertoire?.part ?? '',
+  proficiency: repertoire?.proficiency ?? '',
+  memo       : repertoire?.memo ?? ''
 });
 
-/** レパートリーの登録モーダル */
-export const RepertoireModal = ({ libraryTrack, onClose, onSaved }: Props): ReactElement => {
-  const [repertoireInput     , setRepertoireInput     ] = useState<RepertoireInput>(() => newRepertoireInput(libraryTrack));  // レパートリーの入力値・未選択の項目は空文字
-  const [repertoireLinkInputs, setRepertoireLinkInputs] = useState<Array<RepertoireLinkInput>>(() => [newRepertoireLinkInput(0), newRepertoireLinkInput(1), newRepertoireLinkInput(2)]);  // レパートリーリンク入力行
-  const [isSaving            , setIsSaving            ] = useState<boolean>(false);  // 登録処理中か否か
-  const [saveError           , setSaveError           ] = useState<string>('');      // 登録に失敗した場合のエラーメッセージ
+/** 既存リンクを入力行に変換し、最低3行を用意する */
+const newRepertoireLinkInputs = (repertoire: LibraryRepertoire | null): Array<RepertoireLinkInput> => {
+  const links = repertoire?.repertoire_links.map((link, rowId) => ({
+    rowId,
+    type : link.type,
+    url  : link.url,
+    title: link.title,
+    memo : link.memo ?? ''
+  })) ?? [];
+  return Array.from({ length: Math.max(3, links.length) }, (_, rowId) => links[rowId] ?? newRepertoireLinkInput(rowId));
+};
+
+/** レパートリーの登録・編集モーダル */
+export const RepertoireModal = ({ libraryTrack, repertoire = null, onClose, onSaved }: Props): ReactElement => {
+  const [repertoireInput     , setRepertoireInput     ] = useState<RepertoireInput>(() => newRepertoireInput(repertoire ?? libraryTrack, repertoire));  // レパートリーの入力値・未選択の項目は空文字
+  const [repertoireLinkInputs, setRepertoireLinkInputs] = useState<Array<RepertoireLinkInput>>(() => newRepertoireLinkInputs(repertoire));  // レパートリーリンク入力行
+  const [isSaving            , setIsSaving            ] = useState<boolean>(false);  // 登録・更新・削除処理中か否か
+  const [saveError           , setSaveError           ] = useState<string>('');      // 処理に失敗した場合のエラーメッセージ
   
   /** レパートリー入力欄の項目を更新する */
   const onChangeRepertoire = (field: keyof RepertoireInput, value: string): void => {
@@ -62,27 +75,54 @@ export const RepertoireModal = ({ libraryTrack, onClose, onSaved }: Props): Reac
     setRepertoireLinkInputs(current => current.map((linkInput, currentIndex) => currentIndex === index ? { ...linkInput, [field]: value } : linkInput));
   };
   
-  /** レパートリーを登録する */
+  /** レパートリーを登録または更新する */
   const onSubmit = async (event: SubmitEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
     if(isSaving) return;
     
-    const parsed = createRepertoireSchema.safeParse({
-      track_id: libraryTrack?.id ?? null,
+    const input = {
       ...repertoireInput,
       repertoire_links: repertoireLinkInputs
-    });
+    };
+    const parsed = repertoire == null
+      ? createRepertoireSchema.safeParse({ track_id: libraryTrack?.id ?? null, ...input })
+      : updateRepertoireSchema.safeParse(input);
     if(!parsed.success) return setSaveError(mergeIssues(parsed.error));
     
     setIsSaving(true);
     setSaveError('');
     try {
-      await adminApi.post('/api/repertoires', { json: parsed.data }).json<{ result: { id: number; }; }>();
+      if(repertoire == null) {
+        await adminApi.post('/api/repertoires', { json: parsed.data }).json<{ result: { id: number; }; }>();
+      }
+      else {
+        await adminApi.put(`/api/repertoires/${repertoire.id}`, { json: parsed.data }).json<{ result: { id: number; }; }>();
+      }
       onClose();
       onSaved();
     }
     catch(error) {
-      setSaveError(extractApiErrorMessage(error, 'レパートリーの登録に失敗しました'));
+      setSaveError(extractApiErrorMessage(error, repertoire == null ? 'レパートリーの登録に失敗しました' : 'レパートリーの更新に失敗しました'));
+    }
+    finally {
+      setIsSaving(false);
+    }
+  };
+  
+  /** レパートリーを削除する */
+  const onDelete = async (): Promise<void> => {
+    if(repertoire == null || isSaving) return;
+    if(!window.confirm('このレパートリーを削除しますか？')) return;
+    
+    setIsSaving(true);
+    setSaveError('');
+    try {
+      await adminApi.delete(`/api/repertoires/${repertoire.id}`).json<{ result: { id: number; }; }>();
+      onClose();
+      onSaved();
+    }
+    catch(error) {
+      setSaveError(extractApiErrorMessage(error, 'レパートリーの削除に失敗しました'));
     }
     finally {
       setIsSaving(false);
@@ -92,7 +132,7 @@ export const RepertoireModal = ({ libraryTrack, onClose, onSaved }: Props): Reac
   return (
     <div className="modal modal-open">
       <div className="modal-box max-w-4xl">
-        <h2 className="mb-4 text-lg font-bold">レパートリーを登録する</h2>
+        <h2 className="mb-4 text-lg font-bold">レパートリーを{repertoire == null ? '登録' : '編集'}する</h2>
         
         <form onSubmit={onSubmit}>
           {libraryTrack != null && (
@@ -183,8 +223,11 @@ export const RepertoireModal = ({ libraryTrack, onClose, onSaved }: Props): Reac
           )}
           
           <div className="modal-action justify-between">
+            {repertoire != null && (
+              <button className="btn btn-error" type="button" disabled={isSaving} onClick={onDelete}>削除する</button>
+            )}
             <button className="btn" type="button" disabled={isSaving} onClick={onClose}>キャンセル</button>
-            <button className="btn btn-primary" type="submit" disabled={isSaving}>登録する</button>
+            <button className="btn btn-primary" type="submit" disabled={isSaving}>{repertoire == null ? '登録する' : '更新する'}</button>
           </div>
         </form>
       </div>

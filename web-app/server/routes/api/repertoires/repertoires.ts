@@ -3,8 +3,8 @@ import { jwt } from 'hono/jwt';
 
 import { httpStatusCode } from '../../../../shared/constants/http-status-code';
 import { mergeIssues } from '../../../../shared/helpers/merge-issues';
-import { createRepertoireSchema } from '../../../../shared/schemas/repertoire-schema';
-import { invalidRequestBodyErrorMessage } from '../../../constants/server-constants';
+import { createRepertoireSchema, updateRepertoireSchema } from '../../../../shared/schemas/repertoire-schema';
+import { invalidIdErrorMessage, invalidRequestBodyErrorMessage } from '../../../constants/server-constants';
 import { RepertoiresService } from '../../../services/repertoires-service';
 
 import type { HonoBindings } from '../../../types/hono-bindings';
@@ -26,4 +26,32 @@ repertoires.post('/', async context => {
   if(result.error != null) return context.json({ error: result.error }, httpStatusCode.notFound);
   
   return context.json({ result: { id: result.result } }, httpStatusCode.created);
+});
+
+/** レパートリーとリンクを更新する */
+repertoires.put('/:id', async context => {  // eslint-disable-line neos-eslint-plugin/comment-colon-spacing
+  const id = Number(context.req.param('id'));
+  if(!Number.isInteger(id) || id < 1) return context.json({ error: invalidIdErrorMessage }, httpStatusCode.badRequest);
+  
+  const body = await context.req.json().catch(() => null);
+  if(body == null) return context.json({ error: invalidRequestBodyErrorMessage }, httpStatusCode.badRequest);
+  
+  const parsed = updateRepertoireSchema.safeParse(body);
+  if(!parsed.success) return context.json({ error: mergeIssues(parsed.error) }, httpStatusCode.badRequest);
+  
+  const result = await new RepertoiresService(context.env.DB).update(id, parsed.data);
+  if(result.error != null) return context.json({ error: result.error }, httpStatusCode.notFound);
+  
+  return context.json({ result: { id: result.result } }, httpStatusCode.ok);
+});
+
+/** レパートリーとリンクを削除する */
+repertoires.delete('/:id', async context => {  // eslint-disable-line neos-eslint-plugin/comment-colon-spacing
+  const id = Number(context.req.param('id'));
+  if(!Number.isInteger(id) || id < 1) return context.json({ error: invalidIdErrorMessage }, httpStatusCode.badRequest);
+  
+  const result = await new RepertoiresService(context.env.DB).delete(id);
+  if(result.error != null) return context.json({ error: result.error }, httpStatusCode.notFound);
+  
+  return context.json({ result: { id: result.result } }, httpStatusCode.ok);
 });

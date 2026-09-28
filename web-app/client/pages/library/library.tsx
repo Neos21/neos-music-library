@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactElement } from 'react';
 
 import { EditCommentModal } from './components/edit-comment-modal';
 import { RepertoireModal } from './components/repertoire-modal';
+import { repertoirePartNames } from '../../../shared/constants/repertoire-constants';
 import { isEmpty } from '../../../shared/helpers/is-empty';
 import { adminApi } from '../../helpers/admin-api';
 import { extractApiErrorMessage } from '../../helpers/extract-api-error-message';
@@ -9,7 +10,7 @@ import { useLibraryStore } from '../../stores/library-store';
 
 import type { LibraryTrack } from '../../../shared/types/app/library-track';
 
-type ActiveModal = { type: 'comment'; trackId: number; } | { type: 'repertoire-create'; trackId: number; } | null;
+type ActiveModal = { type: 'comment' | 'repertoire-create'; trackId: number; } | { type: 'repertoire-edit'; trackId: number; repertoireId: number; } | null;
 
 /** ライブラリ一覧 */
 export default function Library(): ReactElement {
@@ -21,6 +22,9 @@ export default function Library(): ReactElement {
   
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);  // 表示中のモーダルと対象トラック ID・閉じていれば `null`
   const activeTrack = activeModal == null ? null : libraryTracks.find(libraryTrack => libraryTrack.id === activeModal.trackId);
+  const activeRepertoire = activeModal?.type === 'repertoire-edit'
+    ? activeTrack?.repertoires.find(repertoire => repertoire.id === activeModal.repertoireId)
+    : null;
   
   /** ライブラリ一覧を取得する */
   const onLoadLibraryTracks = async (isForceReload = false): Promise<void> => {
@@ -91,8 +95,17 @@ export default function Library(): ReactElement {
                   <td>{libraryTrack.title}</td>
                   <td className="whitespace-pre-wrap" onClick={() => setActiveModal({ type: 'comment', trackId: libraryTrack.id })}>{libraryTrack.comment}</td>
                   <td>
-                    {/* TODO : レパートリー1行の名前を表示 → モーダルで詳細表示 (編集 or 削除) */}
-                    <button className="btn btn-sm" type="button" onClick={() => setActiveModal({ type: 'repertoire-create', trackId: libraryTrack.id })}>レパートリー追加</button>
+                    <div className="flex flex-wrap gap-1">
+                      {libraryTrack.repertoires.map(repertoire => (
+                        <button
+                          key={repertoire.id}
+                          className="btn btn-ghost btn-xs"
+                          type="button"
+                          onClick={() => setActiveModal({ type: 'repertoire-edit', trackId: libraryTrack.id, repertoireId: repertoire.id })}
+                        >{repertoirePartNames[repertoire.part]}</button>
+                      ))}
+                      <button className="btn btn-sm" type="button" onClick={() => setActiveModal({ type: 'repertoire-create', trackId: libraryTrack.id })}>レパートリー追加</button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -114,6 +127,15 @@ export default function Library(): ReactElement {
         <RepertoireModal
           key={activeTrack.id}
           libraryTrack={activeTrack}
+          onClose={() => setActiveModal(null)}
+          onSaved={() => onLoadLibraryTracks(true)}
+        />
+      )}
+      {activeModal?.type === 'repertoire-edit' && activeTrack != null && activeRepertoire != null && (
+        <RepertoireModal
+          key={activeRepertoire.id}
+          libraryTrack={activeTrack}
+          repertoire={activeRepertoire}
           onClose={() => setActiveModal(null)}
           onSaved={() => onLoadLibraryTracks(true)}
         />

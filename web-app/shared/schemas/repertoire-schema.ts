@@ -73,6 +73,9 @@ export const createRepertoireSchema = newRepertoireSchema.extend({
   )
 });
 
+/** レパートリーとリンクの更新入力・紐付くトラック ID は変更しない */
+export const updateRepertoireSchema = createRepertoireSchema.omit({ track_id: true });
+
 /** `repertoires` テーブルのスキーマ : 新規登録後 */
 export const repertoireSchema = newRepertoireSchema.extend({
   /** レパートリー ID */
@@ -92,5 +95,7 @@ export const repertoireSchema = newRepertoireSchema.extend({
 export type NewRepertoire = z.infer<typeof newRepertoireSchema>;
 /** レパートリーとリンクの一括登録入力 */
 export type CreateRepertoire = z.infer<typeof createRepertoireSchema>;
+/** レパートリーとリンクの更新入力 */
+export type UpdateRepertoire = z.infer<typeof updateRepertoireSchema>;
 /** `repertoires` テーブルの型 : 新規登録後 */
 export type Repertoire    = z.infer<typeof repertoireSchema>;

@@ -2,7 +2,7 @@ import { convertToCrLf } from '../helpers/convert-to-cr-lf';
 
 import type { Track } from '../../shared/schemas/track-schema';
 
-/** Tracks : `tracks` テーブルの永続化操作を扱う Repository */
+/** `tracks` テーブルの永続化操作を扱う Repository */
 export class TracksRepository {
   constructor(private readonly db: D1Database) { }
   

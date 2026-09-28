@@ -2,10 +2,10 @@ import { RepertoireLinksRepository } from '../repositories/repertoire-links-repo
 import { RepertoiresRepository } from '../repositories/repertoires-repository';
 import { TracksRepository } from '../repositories/tracks-repository';
 
-import type { CreateRepertoire } from '../../shared/schemas/repertoire-schema';
+import type { CreateRepertoire, UpdateRepertoire } from '../../shared/schemas/repertoire-schema';
 import type { Result } from '../../shared/types/utilities/result';
 
-/** レパートリーとリンクをまとめて登録する Service */
+/** レパートリーとリンクの登録・更新・削除を扱う Service */
 export class RepertoiresService {
   constructor(private readonly db: D1Database) { }
   
@@ -21,5 +21,32 @@ export class RepertoiresService {
     const repertoireLinkStatements = repertoire.repertoire_links.map(repertoireLink => repertoireLinksRepository.prepareCreate(null, repertoireLink));
     const results = await this.db.batch([repertoireStatement, ...repertoireLinkStatements]);
     return { result: results[0]!.meta.last_row_id };
+  }
+  
+  /** レパートリーを更新し、リンクを入力内容で入れ替える */
+  public async update(id: number, repertoire: UpdateRepertoire): Promise<Result<number>> {
+    const repertoiresRepository = new RepertoiresRepository(this.db);
+    if(await repertoiresRepository.findById(id) == null) return { error: 'レパートリーが存在しません' };
+    
+    const repertoireLinksRepository = new RepertoireLinksRepository(this.db);
+    await this.db.batch([
+      repertoiresRepository.prepareUpdate(id, repertoire),
+      repertoireLinksRepository.prepareDeleteByRepertoireId(id),
+      ...repertoire.repertoire_links.map(repertoireLink => repertoireLinksRepository.prepareCreate(id, repertoireLink))
+    ]);
+    return { result: id };
+  }
+  
+  /** レパートリーと紐付くリンクを削除する */
+  public async delete(id: number): Promise<Result<number>> {
+    const repertoiresRepository = new RepertoiresRepository(this.db);
+    if(await repertoiresRepository.findById(id) == null) return { error: 'レパートリーが存在しません' };
+    
+    const repertoireLinksRepository = new RepertoireLinksRepository(this.db);
+    await this.db.batch([
+      repertoireLinksRepository.prepareDeleteByRepertoireId(id),
+      repertoiresRepository.prepareDelete(id)
+    ]);
+    return { result: id };
   }
 }
