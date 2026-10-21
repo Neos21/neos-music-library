@@ -71,7 +71,7 @@ const fetchD1Tracks = async (d1ApiToken: string): Promise<Result<Array<D1Track>>
     const client = new Cloudflare({ apiToken: d1ApiToken });
     const queryResult = await client.d1.database.query(d1DatabaseId, {
       account_id: cloudflareAccountId,
-      sql: 'SELECT * FROM tracks'
+      sql: 'SELECT * FROM tracks'  // `*` とカラム記述しても実行速度は変わらない・`ORDER BY id` も実行速度は変わらないのでコレで OK
     });
     
     // 実行結果の不正が分かれば早期 `return` → `finally` で結果ファイルを出力して終了する

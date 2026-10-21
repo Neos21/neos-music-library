@@ -37,6 +37,8 @@ CREATE TABLE repertoires (  -- レパートリー
   updated_at  TEXT  NOT NULL  DEFAULT CURRENT_TIMESTAMP   -- レコード最終更新日時
 );
 
+CREATE INDEX index_repertoires_track_id ON repertoires (track_id);  -- 楽曲情報との親子関係によるスキャン削減を意図したインデックス
+
 CREATE TABLE repertoire_links (  -- レパートリーに紐付く URL
   id             INTEGER  PRIMARY KEY  AUTOINCREMENT,  -- ID
   repertoire_id  INTEGER  NOT NULL,                    -- 紐付けるレパートリー ID
@@ -49,3 +51,5 @@ CREATE TABLE repertoire_links (  -- レパートリーに紐付く URL
   created_at  TEXT  NOT NULL  DEFAULT CURRENT_TIMESTAMP,  -- レコード初回作成日時
   updated_at  TEXT  NOT NULL  DEFAULT CURRENT_TIMESTAMP   -- レコード最終更新日時
 );
+
+CREATE INDEX index_repertoire_links_repertoire_id ON repertoire_links (repertoire_id);  -- レパートリーとの親子関係によるスキャン削減を意図したインデックス
