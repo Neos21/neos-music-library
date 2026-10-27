@@ -47,6 +47,29 @@ export default function Library(): ReactElement {
   const activeStandaloneRepertoire = activeModal?.type === 'repertoire-edit-standalone' ? repertoiresWithoutTrack.find(repertoireWithoutTrack => repertoireWithoutTrack.id === activeModal.repertoireId) : null;
   
   /** ライブラリ一覧を取得する */
+  const loadLibrary = async (): Promise<void> => {
+    try {
+      const response = await adminApi.get('/api/library').json<{ result: Array<LibraryTrack>; }>();
+      // Zustand のインメモリキャッシュは同期的に行われ、裏で IndexedDB への保存も非同期で行われる (万が一 `indexedDBStorage` で例外が発生した場合は Uncaught エラーになる)
+      useLibraryStore.getState().setLibraryTracks(response.result);
+    }
+    catch(error) {
+      setListError(extractApiErrorMessage(error, 'ライブラリ一覧の取得に失敗しました'));
+    }
+  };
+  
+  /** レパートリー一覧を取得する */
+  const loadRepertoires = async (): Promise<void> => {
+    try {
+      const response = await adminApi.get('/api/repertoires', { searchParams: { filter: 'no-track' } }).json<{ result: Array<RepertoireWithoutTrack>; }>();
+      useLibraryStore.getState().setRepertoiresWithoutTrack(response.result);
+    }
+    catch(error) {
+      setListError(extractApiErrorMessage(error, 'レパートリー一覧の取得に失敗しました'));
+    }
+  };
+  
+  /** ライブラリ一覧を取得する */
   const onLoadLibraryTracks = async (isForceReload = false): Promise<void> => {
     setListError('');
     setIsLoading(true);
@@ -56,31 +79,16 @@ export default function Library(): ReactElement {
     const shouldLoadRepertoiresWithoutTrack = isForceReload || repertoiresWithoutTrack.length === 0;
     if(!shouldLoadLibraryTracks && !shouldLoadRepertoiresWithoutTrack) return setIsLoading(false);
     
-    const errors: Array<string> = [];
     await Promise.all([
       (async () => {
         if(!shouldLoadLibraryTracks) return;
-        try {
-          const response = await adminApi.get('/api/library').json<{ result: Array<LibraryTrack>; }>();
-          // Zustand のインメモリキャッシュは同期的に行われ、裏で IndexedDB への保存も非同期で行われる (万が一 `indexedDBStorage` で例外が発生した場合は Uncaught エラーになる)
-          useLibraryStore.getState().setLibraryTracks(response.result);
-        }
-        catch(error) {
-          errors.push(extractApiErrorMessage(error, 'ライブラリ一覧の取得に失敗しました'));
-        }
+        await loadLibrary();
       })(),
       (async () => {
         if(!shouldLoadRepertoiresWithoutTrack) return;
-        try {
-          const response = await adminApi.get('/api/repertoires', { searchParams: { filter: 'no-track' } }).json<{ result: Array<RepertoireWithoutTrack>; }>();
-          useLibraryStore.getState().setRepertoiresWithoutTrack(response.result);
-        }
-        catch(error) {
-          errors.push(extractApiErrorMessage(error, 'レパートリー一覧の取得に失敗しました'));
-        }
+        await loadRepertoires();
       })()
     ]);
-    setListError(errors.join('・'));
     setIsLoading(false);
   };
   
@@ -92,7 +100,7 @@ export default function Library(): ReactElement {
     (async () => {
       await onLoadLibraryTracks(false);
     })();
-  }, [isHydrated]);
+  }, [isHydrated]);  // eslint-disable-line
   
   return (
     <main className="px-2 py-4">
@@ -224,9 +232,10 @@ export default function Library(): ReactElement {
           key={activeTrack.id}
           libraryTrack={activeTrack}
           onClose={() => setActiveModal(null)}
-          onUpdated={() => onLoadLibraryTracks(true)}
+          onUpdated={() => onLoadLibraryTracks(false)}
         />
       )}
+      {/* TODO : レパートリーの作成・編集・削除時も Store の書き換えのみとし、一覧の再読み込みを行わないようにする */}
       {activeModal?.type === 'repertoire-create' && activeTrack != null && (
         <RepertoireModal
           key={activeTrack.id}

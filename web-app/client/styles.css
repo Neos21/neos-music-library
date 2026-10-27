@@ -40,7 +40,7 @@ body {
 
 /** ライブラリ一覧のテーブル */
 .library-table {
-  @apply w-full border-collapse text-sm;
+  @apply w-full border-collapse text-xs;
   border-top: 1px solid color-mix(in oklch, var(--color-base-content) 10%, #0000);
   
   & thead :is(th, td) {
