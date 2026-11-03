@@ -1,8 +1,22 @@
 import type { NewRepertoire, Repertoire, UpdateRepertoire } from '../../shared/schemas/repertoire-schema';
+import type { RepertoireWithoutTrack } from '../../shared/types/app/library-track';
 
 /** `repertoires` テーブルの永続化操作を扱う Repository */
 export class RepertoiresRepository {
   constructor(private readonly db: D1Database) { }
+  
+  /** 楽曲に紐付かないレパートリーを一覧取得する */
+  public async findWithoutTrack(): Promise<Array<RepertoireWithoutTrack>> {
+    const result = await this.db
+      .prepare(`
+        SELECT id, track_id, artist, album, title, part, proficiency, memo
+        FROM repertoires
+        WHERE track_id IS NULL
+        ORDER BY artist ASC, album ASC, title ASC, id ASC
+      `)
+      .all<RepertoireWithoutTrack>();
+    return result.results ?? [];
+  }
   
   /** ID に一致するレパートリーを取得する */
   public async findById(id: number): Promise<Pick<Repertoire, 'id' | 'track_id'> | null> {

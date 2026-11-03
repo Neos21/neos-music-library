@@ -1,19 +1,17 @@
 import z from 'zod';
 
-import { newRepertoireLinkSchema } from './repertoire-link-schema';
 import { preprocessMultiLinesString, preprocessNullableNumber, preprocessOneLineString, zodErrorMessages } from './schema-utilities';
 import { repertoirePartValues, repertoireProficiencyValues } from '../constants/repertoire-constants';
 import { isEmpty } from '../helpers/is-empty';
 
-const repertoireIdDisplayName    = 'レパートリー ID'    as const;
-const trackIdDisplayName         = 'トラック ID'        as const;
-const artistDisplayName          = 'アーティスト名'     as const;
-const albumDisplayName           = 'アルバム名'         as const;
-const titleDisplayName           = '曲名'               as const;
-const partDisplayName            = 'パート'             as const;
-const proficiencyDisplayName     = '習熟度'             as const;
-const memoDisplayName            = 'メモ'               as const;
-const repertoireLinksDisplayName = 'レパートリーリンク' as const;
+const repertoireIdDisplayName = 'レパートリー ID' as const;
+const trackIdDisplayName      = 'トラック ID'     as const;
+const artistDisplayName       = 'アーティスト名'  as const;
+const albumDisplayName        = 'アルバム名'      as const;
+const titleDisplayName        = '曲名'            as const;
+const partDisplayName         = 'パート'          as const;
+const proficiencyDisplayName  = '習熟度'          as const;
+const memoDisplayName         = 'メモ'            as const;
 
 /** `repertoires` テーブルのスキーマ : 新規登録用 */
 export const newRepertoireSchema = z.object({
@@ -62,21 +60,10 @@ export const newRepertoireSchema = z.object({
                 )
 });
 
-/** レパートリーとレパートリーリンクを一括登録するためのスキーマ */
-export const createRepertoireSchema = newRepertoireSchema.extend({
-  repertoire_links: z.preprocess(
-    value => Array.isArray(value)
-      ? value.filter(link => {
-          if(link == null || typeof link !== 'object' || Array.isArray(link)) return true;
-          const fields = link as Record<string, unknown>;
-          return ['type', 'url', 'title', 'memo'].some(field => !isEmpty(fields[field]));
-        })
-      : value,
-    z.array(newRepertoireLinkSchema.omit({ repertoire_id: true }), { error: zodErrorMessages.invalidType(repertoireLinksDisplayName) })
-  )
-});
+/** レパートリーの登録入力 */
+export const createRepertoireSchema = newRepertoireSchema;
 
-/** レパートリーとレパートリーリンクの更新入力・トラック ID は未紐付けからの紐付け時のみ指定する */
+/** レパートリーの更新入力・トラック ID は未紐付けからの紐付け時のみ指定する */
 export const updateRepertoireSchema = createRepertoireSchema.omit({ track_id: true }).extend({
   track_id: newRepertoireSchema.shape.track_id
     .refine(trackId => trackId != null, { error: zodErrorMessages.invalidType(trackIdDisplayName) })
@@ -100,9 +87,9 @@ export const repertoireSchema = newRepertoireSchema.extend({
 
 /** `repertoires` テーブルの型 : 新規登録用 */
 export type NewRepertoire    = z.infer<typeof newRepertoireSchema>;
-/** レパートリーとレパートリーリンクの一括登録入力 */
+/** レパートリーの登録入力 */
 export type CreateRepertoire = z.infer<typeof createRepertoireSchema>;
-/** レパートリーとレパートリーリンクの更新入力 */
+/** レパートリーの更新入力 */
 export type UpdateRepertoire = z.infer<typeof updateRepertoireSchema>;
 /** `repertoires` テーブルの型 : 新規登録後 */
 export type Repertoire       = z.infer<typeof repertoireSchema>;

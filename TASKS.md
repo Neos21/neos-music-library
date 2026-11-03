@@ -12,7 +12,7 @@
 
 - [x] `pages/library/library.tsx` を `pages/tracks/tracks.tsx` に名称変更する。関連するページのパス・API も `/library` から `/tracks` に、`library-service` なども `tracks-service` に名称変更・統一する。既存の `/api/tracks` のコメント更新 API と統合する
 - [x] `tracks.tsx` は GET `/api/tracks` から `tracks` テーブルのみを取得し一覧表示するようにする。`repertoires` テーブル等は JOIN せず、`tracks.comment` の編集モーダルのみを残す。同時に `libraryStore` を `tracksStore` に名称変更し、`tracks` テーブルのみを IndexedDB に同期保存する Store に分離する
-- [ ] `repertoire_links` テーブルへのコード上の依存を削除する。対象テーブルを操作する Repository、関連する型・Schema・定数、API・Service・UI 内の処理なども削除対象とする。既存データの保持・移行は考慮しない。テーブル自体の削除は開発者が手動で行うため、マイグレーション SQL ファイルは編集せず、DB 操作も実行しない
+- [x] `repertoire_links` テーブルへのコード上の依存を削除する。対象テーブルを操作する Repository、関連する型・Schema・定数、API・Service・UI 内の処理なども削除対象とする。既存データの保持・移行は考慮しない。テーブル自体の削除は開発者が手動で行うため、マイグレーション SQL ファイルは編集せず、DB 操作も実行しない
 - [ ] `pages/repertoires/repertoires.tsx` ページを新規作成し、`repertoires` テーブルを中心に、紐付く `tracks` テーブルのレコードがあったら一緒に取得する GET `/api/repertoires` を用意する。同時に `repertoiresStore` を新設し、`repertoires` + 紐付く `tracks` を IndexedDB に同期保存する
 - [ ] `repertoires.tsx` の一覧表は次のように表示する
   - 列 : ID・アーティスト・アルバム・曲名・パート・習熟度
