@@ -24,8 +24,8 @@ export function Layout({ children }: { children: ReactNode }): ReactElement {
     
     const isAuthenticated = !isEmpty(token);
     
-    if(isAuthenticated && location.pathname === '/') {  // ログイン済の場合は `/library` に移動する
-      navigate('/library', { replace: true });
+    if(isAuthenticated && location.pathname === '/') {  // ログイン済の場合は `/tracks` に移動する
+      navigate('/tracks', { replace: true });
       return;
     }
     if(!isAuthenticated && location.pathname !== '/') {  // 未ログインの場合に `/` 以外にいる場合は `/` に移動する

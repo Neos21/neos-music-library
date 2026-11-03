@@ -44,7 +44,7 @@ export default function Index(): ReactElement {
     try {
       const response = await ky.post('/api/login', { json: parsed.data }).json<{ result: { token: string; }; }>();
       useAdminStore.getState().setToken(response.result.token);
-      navigate('/library');
+      navigate('/tracks');
     }
     catch(error) {
       setLoginError(extractApiErrorMessage(error, 'ログインに失敗しました'));

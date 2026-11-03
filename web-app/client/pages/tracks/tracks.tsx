@@ -23,8 +23,8 @@ type ActiveModal =
 /** アーティスト名・アルバム名・曲名を大文字小文字を区別せず検索する */
 const matchesSearch = (item: Pick<LibraryTrack, 'artist' | 'album' | 'title'>, searchText: string): boolean => (item.artist ?? '').toLowerCase().includes(searchText) || (item.album ?? '').toLowerCase().includes(searchText) || item.title.toLowerCase().includes(searchText);
 
-/** ライブラリ一覧 */
-export default function Library(): ReactElement {
+/** 楽曲一覧 */
+export default function Tracks(): ReactElement {
   // Store から取得した値
   const isHydrated              = useLibraryStore(state => state.isHydrated);
   const libraryTracks           = useLibraryStore(state => state.libraryTracks);
@@ -47,9 +47,9 @@ export default function Library(): ReactElement {
   const activeStandaloneRepertoire = activeModal?.type === 'repertoire-edit-standalone' ? repertoiresWithoutTrack.find(repertoireWithoutTrack => repertoireWithoutTrack.id === activeModal.repertoireId) : null;
   
   /** ライブラリ一覧を取得する */
-  const loadLibrary = async (): Promise<void> => {
+  const loadTracks = async (): Promise<void> => {
     try {
-      const response = await adminApi.get('/api/library').json<{ result: Array<LibraryTrack>; }>();
+      const response = await adminApi.get('/api/tracks').json<{ result: Array<LibraryTrack>; }>();
       // Zustand のインメモリキャッシュは同期的に行われ、裏で IndexedDB への保存も非同期で行われる (万が一 `indexedDBStorage` で例外が発生した場合は Uncaught エラーになる)
       useLibraryStore.getState().setLibraryTracks(response.result);
     }
@@ -82,7 +82,7 @@ export default function Library(): ReactElement {
     await Promise.all([
       (async () => {
         if(!shouldLoadLibraryTracks) return;
-        await loadLibrary();
+        await loadTracks();
       })(),
       (async () => {
         if(!shouldLoadRepertoiresWithoutTrack) return;

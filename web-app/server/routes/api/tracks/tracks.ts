@@ -6,6 +6,7 @@ import { mergeIssues } from '../../../../shared/helpers/merge-issues';
 import { updateTrackSchema } from '../../../../shared/schemas/track-schema';
 import { invalidIdErrorMessage, invalidRequestBodyErrorMessage } from '../../../constants/server-constants';
 import { TracksRepository } from '../../../repositories/tracks-repository';
+import { TracksService } from '../../../services/tracks-service';
 
 import type { HonoBindings } from '../../../types/hono-bindings';
 
@@ -13,6 +14,12 @@ export const tracks = new Hono<{ Bindings: HonoBindings; }>();
 export const tracksPath = '/tracks' as const;
 
 tracks.use((context, next) => jwt({ secret: context.env.ADMIN_JWT_SECRET, alg: 'HS256' })(context, next));
+
+/** 楽曲一覧を取得する */
+tracks.get('/', async context => {
+  const tracks = await new TracksService(context.env.DB).findAll();
+  return context.json({ result: tracks }, httpStatusCode.ok);
+});
 
 /** コメントを更新する */
 tracks.patch('/:id', async context => {  // eslint-disable-line neos-eslint-plugin/comment-colon-spacing

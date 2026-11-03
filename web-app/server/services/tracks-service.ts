@@ -20,7 +20,7 @@ type LibraryRow =
   Prefixed<Nullable<Omit<RepertoireLink, 'repertoire_id' |                               'created_at' | 'updated_at'>>, 'repertoire_link'>;
 
 /** ライブラリ情報を取得するためのサービス */
-export class LibraryService {
+export class TracksService {
   constructor(private readonly db: D1Database) { }
   
   /** 一覧取得する */
