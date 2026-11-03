@@ -6,19 +6,18 @@ import { commentDisplayName, updateTrackSchema } from '../../../../shared/schema
 import { adminApi } from '../../../helpers/admin-api';
 import { convertToLf } from '../../../helpers/convert-to-lf';
 import { extractApiErrorMessage } from '../../../helpers/extract-api-error-message';
-import { useLibraryStore } from '../../../stores/library-store';
+import { useTracksStore } from '../../../stores/tracks-store';
 
-import type { LibraryTrack } from '../../../../shared/types/app/library-track';
+import type { TrackListItem } from '../../../../shared/types/app/track-list-item';
 
 type Props = {
-  libraryTrack: LibraryTrack;
+  track: TrackListItem;
   onClose: () => void;
-  onUpdated: () => void;
 };
 
 /** 楽曲のコメント編集モーダル */
-export const EditCommentModal = ({ libraryTrack, onClose, onUpdated }: Props): ReactElement => {
-  const [editingComment, setEditingComment] = useState<string>(() => convertToLf(libraryTrack.comment ?? ''));  // 編集中のコメント
+export const EditCommentModal = ({ track, onClose }: Props): ReactElement => {
+  const [editingComment, setEditingComment] = useState<string>(() => convertToLf(track.comment ?? ''));  // 編集中のコメント
   const [isSaving      , setIsSaving      ] = useState<boolean>(false);                                         // 保存処理中か否か
   const [saveError     , setSaveError     ] = useState<string>('');                                             // 保存に失敗した場合のエラーメッセージ
   
@@ -33,11 +32,10 @@ export const EditCommentModal = ({ libraryTrack, onClose, onUpdated }: Props): R
     setIsSaving(true);
     setSaveError('');
     try {
-      const response = await adminApi.patch(`/api/tracks/${libraryTrack.id}`, { json: parsed.data }).json<{ result: Pick<LibraryTrack, 'id' | 'comment'>; }>();
+      const response = await adminApi.patch(`/api/tracks/${track.id}`, { json: parsed.data }).json<{ result: Pick<TrackListItem, 'id' | 'comment'>; }>();
       
-      useLibraryStore.getState().updateLibraryTrackComment(response.result);
+      useTracksStore.getState().updateTrackComment(response.result);
       onClose();
-      onUpdated();
     }
     catch(error) {
       setSaveError(extractApiErrorMessage(error, 'コメントの更新に失敗しました'));
@@ -55,15 +53,15 @@ export const EditCommentModal = ({ libraryTrack, onClose, onUpdated }: Props): R
         <form onSubmit={onSubmit}>
           <dl className="mb-2 grid grid-cols-[auto_1fr] gap-2 text-xs">
             <dt>トラック ID</dt>
-            <dd>{libraryTrack.id}</dd>
+            <dd>{track.id}</dd>
             <dt>アーティスト</dt>
-            <dd>{libraryTrack.artist}</dd>
+            <dd>{track.artist}</dd>
             <dt>アルバム</dt>
-            <dd>{libraryTrack.album}</dd>
+            <dd>{track.album}</dd>
             <dt>トラック番号</dt>
-            <dd>{libraryTrack.track_number === 0 ? '-' : libraryTrack.track_number}</dd>
+            <dd>{track.track_number === 0 ? '-' : track.track_number}</dd>
             <dt>曲名</dt>
-            <dd>{libraryTrack.title}</dd>
+            <dd>{track.title}</dd>
           </dl>
           
           <fieldset className="mb-4 fieldset">

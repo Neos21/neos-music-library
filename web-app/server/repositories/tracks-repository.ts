@@ -1,10 +1,28 @@
 import { convertToCrLf } from '../helpers/convert-to-cr-lf';
 
 import type { Track } from '../../shared/schemas/track-schema';
+import type { TrackListItem } from '../../shared/types/app/track-list-item';
 
 /** `tracks` テーブルの永続化操作を扱う Repository */
 export class TracksRepository {
   constructor(private readonly db: D1Database) { }
+  
+  /** 楽曲一覧に必要な項目だけを取得する */
+  public async findAll(): Promise<Array<TrackListItem>> {
+    const result = await this.db
+      .prepare(`
+        SELECT id, artist, album, track_number, title, comment
+        FROM tracks
+        ORDER BY
+          artist        ASC NULLS FIRST,
+          album         ASC NULLS FIRST,
+          track_number  ASC,
+          title         ASC,
+          id            ASC
+      `)
+      .all<TrackListItem>();
+    return result.results ?? [];
+  }
   
   /** 指定した ID の楽曲が存在するか確認する */
   public async findById(id: number): Promise<Pick<Track, 'id'> | null> {

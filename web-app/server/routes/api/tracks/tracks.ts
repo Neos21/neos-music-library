@@ -6,7 +6,6 @@ import { mergeIssues } from '../../../../shared/helpers/merge-issues';
 import { updateTrackSchema } from '../../../../shared/schemas/track-schema';
 import { invalidIdErrorMessage, invalidRequestBodyErrorMessage } from '../../../constants/server-constants';
 import { TracksRepository } from '../../../repositories/tracks-repository';
-import { TracksService } from '../../../services/tracks-service';
 
 import type { HonoBindings } from '../../../types/hono-bindings';
 
@@ -17,7 +16,7 @@ tracks.use((context, next) => jwt({ secret: context.env.ADMIN_JWT_SECRET, alg: '
 
 /** 楽曲一覧を取得する */
 tracks.get('/', async context => {
-  const tracks = await new TracksService(context.env.DB).findAll();
+  const tracks = await new TracksRepository(context.env.DB).findAll();
   return context.json({ result: tracks }, httpStatusCode.ok);
 });
 
