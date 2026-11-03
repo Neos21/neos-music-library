@@ -7,6 +7,7 @@ import { mergeIssues } from '../../../../shared/helpers/merge-issues';
 import { loginSchema } from '../../../../shared/schemas/login-schema';
 import { invalidRequestBodyErrorMessage } from '../../../constants/server-constants';
 
+import type { Result } from '../../../../shared/types/utilities/result';
 import type { HonoBindings } from '../../../types/hono-bindings';
 
 export const login = new Hono<{ Bindings: HonoBindings; }>();
@@ -28,5 +29,5 @@ login.post('/', async context => {
   const now = Math.floor(Date.now() / 1000);
   const tokenExpiresInSeconds = 60 * 60 * 24 * 30;  // 30日間
   const token = await sign({ exp: now + tokenExpiresInSeconds, iat: now }, context.env.ADMIN_JWT_SECRET, 'HS256');
-  return context.json({ result: { token } }, httpStatusCode.ok);
+  return context.json<Result<{ token: string; }>>({ result: { token } }, httpStatusCode.ok);
 });

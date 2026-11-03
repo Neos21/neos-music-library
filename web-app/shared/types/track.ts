@@ -1,7 +1,7 @@
 import type { trackSchema } from '../schemas/track-schema';
 import type z from 'zod';
 
-/** `tracks` テーブルの型 */
+/** `tracks` テーブルの型 : 全カラム定義 */
 export type Track = z.infer<typeof trackSchema>;
 
 /** 楽曲一覧で使用する公開項目 */

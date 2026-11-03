@@ -21,24 +21,24 @@ type Props = {
 /** 楽曲のコメント編集モーダル */
 export const EditCommentModal = ({ track, onClose }: Props): ReactElement => {
   const [comment     , setComment     ] = useState<string>(() => convertToLf(track.comment ?? ''));  // 編集中のコメント
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);                                  // 保存処理中か否か
-  const [error       , setError       ] = useState<string>('');                                      // 保存に失敗した場合のエラーメッセージ
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);                                  // 処理中か否か
+  const [error       , setError       ] = useState<string>('');                                      // エラーメッセージ
   
   /** コメントを保存する */
   const onSubmit = async (event: SubmitEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
     if(isSubmitting) return;
     
-    const parsed = updateTrackSchema.safeParse({ comment: comment });
+    const parsed = updateTrackSchema.safeParse({ comment });
     if(!parsed.success) return setError(mergeIssues(parsed.error));
     
     setIsSubmitting(true);
     setError('');
     try {
-      const response = await adminApi.patch(`/api/tracks/${track.id}`, { json: parsed.data }).json<Result<Pick<TrackListItem, 'id' | 'comment'>>>();
-      if(response.error != null) return setError(response.error);
+      const result = await adminApi.patch(`/api/tracks/${track.id}`, { json: parsed.data }).json<Result<true>>();
+      if(result.error != null) return setError(result.error);
       
-      useTracksStore.getState().updateTrackComment(response.result);
+      useTracksStore.getState().updateTrackComment({ id: track.id, comment: parsed.data.comment });
       onClose();
     }
     catch(error) {
@@ -55,7 +55,7 @@ export const EditCommentModal = ({ track, onClose }: Props): ReactElement => {
         <h2 className="mb-4 text-lg font-bold">コメントを編集する</h2>
         
         <form onSubmit={onSubmit}>
-          <dl className="mb-2 grid grid-cols-[auto_1fr] gap-2 text-xs">
+          <dl className="mb-2 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-xs">
             <dt>トラック ID</dt>
             <dd>{track.id}</dd>
             <dt>アーティスト</dt>
@@ -86,8 +86,8 @@ export const EditCommentModal = ({ track, onClose }: Props): ReactElement => {
           )}
           
           <div className="modal-action justify-between">
-            <button className="btn" type="button" disabled={isSubmitting} onClick={onClose}>キャンセル</button>
-            <button className="btn btn-info" type="submit" disabled={isSubmitting}>更新する</button>
+            <button type="button" className="btn btn-sm" disabled={isSubmitting} onClick={onClose}>キャンセル</button>
+            <button type="submit" className="btn btn-info btn-sm" disabled={isSubmitting}>更新する</button>
           </div>
         </form>
       </div>

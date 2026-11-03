@@ -4,7 +4,7 @@ import { preprocessMultiLinesString, zodErrorMessages } from './schema-utilities
 
 export const commentDisplayName = 'コメント' as const;
 
-/** `tracks` テーブルのスキーマ : Web アプリで編集可能なのは `comment` のみ */
+/** `tracks` テーブルのスキーマ : 全カラム定義・Web アプリで編集可能なのは `comment` のみ */
 export const trackSchema = z.object({
   /** トラック ID */
   id: z.number(),

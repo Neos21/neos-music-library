@@ -24,7 +24,7 @@ export default function Index(): ReactElement {
   }, []);
   
   const [password    , setPassword    ] = useState<string>('');      // パスワード
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);  // ログイン処理中か否か
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);  // 処理中か否か
   const [error       , setError       ] = useState<string>('');      // エラーメッセージ
   
   /** パスワード入力時に表示中のエラーメッセージも消去する */
@@ -58,13 +58,12 @@ export default function Index(): ReactElement {
   
   return (
     <main className="px-2 py-4">
-      <form onSubmit={onSubmit} className="mb-4 flex gap-x-2">
-        <input
-          type="password" value={password} onChange={onChange} disabled={isSubmitting}
-          className="input w-full flex-1 input-sm" placeholder="Neo's Music Library"
+      <form onSubmit={onSubmit} className="mb-4 grid grid-cols-[1fr_auto] gap-x-2">
+        <input type="password" className="input w-full input-sm" placeholder="Neo's Music Library"
+          value={password} disabled={isSubmitting} onChange={onChange}
           autoComplete="current-password"
         />
-        <button type="submit" className="btn shrink-0 btn-sm" disabled={isSubmitting || isEmpty(password)}>Login</button>
+        <button type="submit" className="btn btn-sm" disabled={isSubmitting || isEmpty(password)}>Login</button>
       </form>
       
       {shouldRequestRelogin && (

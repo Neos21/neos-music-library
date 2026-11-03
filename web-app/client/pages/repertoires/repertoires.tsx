@@ -17,12 +17,12 @@ export default function Repertoires(): ReactElement {
   const isHydrated  = useRepertoiresStore(state => state.isHydrated);
   const repertoires = useRepertoiresStore(state => state.repertoires);
   
-  const [isLoading       , setIsLoading       ] = useState<boolean>(true);                    // 一覧読込中か否か
+  const [isLoading       , setIsLoading       ] = useState<boolean>(true);                    // 読込中か否か
   const [error           , setError           ] = useState<string>('');                       // エラーメッセージ
+  const [isCreating      , setIsCreating      ] = useState<boolean>(false);                   // 新規登録モーダルを表示中か否か
   const [activeRepertoire, setActiveRepertoire] = useState<RepertoireListItem | null>(null);  // 表示中のレパートリー・モーダルを閉じていれば `null`
-  const [isCreating      , setIsCreating      ] = useState<boolean>(false);                   // 新規登録フォームを表示中か否か
   
-  /** キャッシュを優先し、再読込時のみ取得し直す */
+  /** レパートリー一覧を取得する */
   const onLoadRepertoires = async (isForceReload = false): Promise<void> => {
     setError('');
     setIsLoading(true);
@@ -52,7 +52,8 @@ export default function Repertoires(): ReactElement {
   
   return (
     <main className="px-2 py-4">
-      <div className="mb-4 text-right">
+      <div className="mb-4 grid grid-cols-[1fr_auto] gap-x-2 whitespace-nowrap">
+        <h1 className="font-bold">レパートリー一覧</h1>
         <Link className="btn btn-sm" to="/tracks">楽曲一覧</Link>
       </div>
       
@@ -66,19 +67,18 @@ export default function Repertoires(): ReactElement {
       
       {!isLoading && (
         <div className="mb-4 flex justify-between gap-2">
-          <button className="btn btn-info btn-sm" type="button" disabled={!isHydrated || isLoading} onClick={() => onLoadRepertoires(true)}>再読込</button>
-          <button className="btn btn-sm btn-success" type="button" onClick={() => setIsCreating(true)}>レパートリー追加</button>
+          <button type="button" className="btn btn-sm btn-success" onClick={() => setIsCreating(true)}>レパートリー追加</button>
+          <button type="button" className="btn btn-info btn-sm" disabled={!isHydrated || isLoading} onClick={() => onLoadRepertoires(true)}>再読込</button>
         </div>
       )}
       
-      {!isLoading && (
-        <p className="mb-4 text-sm">{repertoires.length === 0 ? '登録されているレパートリーはありません。' : `レパートリー : ${repertoires.length} 件`}</p>
+      {!isLoading && repertoires.length === 0 && (
+        <p className="mb-4 text-sm">登録されているレパートリーはありません。</p>
       )}
       {!isLoading && repertoires.length > 0 && (
         <div className="mb-4 overflow-x-auto">
           <table className="library-table">  {/* eslint-disable-line tailwindcss/no-custom-classname */}
             <colgroup>
-              <col className="w-px" />
               <col className="w-[25%] min-w-[10em]" />
               <col className="w-[25%] min-w-[10em]" />
               <col className="w-[30%] min-w-[13em]" />
@@ -87,7 +87,6 @@ export default function Repertoires(): ReactElement {
             </colgroup>
             <thead>
               <tr>
-                <th>ID</th>
                 <th>アーティスト</th>
                 <th>アルバム</th>
                 <th>曲名</th>
@@ -98,19 +97,9 @@ export default function Repertoires(): ReactElement {
             <tbody>
               {repertoires.map(repertoire => (
                 <tr key={repertoire.id} className="cursor-pointer hover:bg-zinc-100" onClick={() => setActiveRepertoire(repertoire)}>
-                  <td className="text-right whitespace-nowrap">{repertoire.track?.id ?? '-'}</td>
-                  {(['artist', 'album', 'title'] as const).map(field => (
-                    <td key={field}>
-                      {repertoire.track != null ? (
-                        <>
-                          <div className="text-black">{repertoire.track[field]}</div>
-                          <div className="text-[.85em] text-gray-500">{repertoire[field]}</div>
-                        </>
-                      ) : (
-                        <div className="text-black">{repertoire[field]}</div>
-                      )}
-                    </td>
-                  ))}
+                  <td>{repertoire.track != null ? repertoire.track.artist : repertoire.artist}</td>
+                  <td>{repertoire.track != null ? repertoire.track.album  : repertoire.album}</td>
+                  <td>{repertoire.track != null ? repertoire.track.title  : repertoire.title}</td>
                   <td className="whitespace-nowrap">{repertoirePartNames[repertoire.part]}</td>
                   <td className="whitespace-nowrap">{repertoire.proficiency == null ? '-' : repertoireProficiencyNames[repertoire.proficiency]}</td>
                 </tr>

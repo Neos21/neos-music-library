@@ -7,6 +7,8 @@ import { updateTrackSchema } from '../../../../shared/schemas/track-schema';
 import { invalidIdErrorMessage, invalidRequestBodyErrorMessage } from '../../../constants/server-constants';
 import { TracksRepository } from '../../../repositories/tracks-repository';
 
+import type { TrackListItem } from '../../../../shared/types/track';
+import type { Result } from '../../../../shared/types/utilities/result';
 import type { HonoBindings } from '../../../types/hono-bindings';
 
 export const tracks = new Hono<{ Bindings: HonoBindings; }>();
@@ -17,16 +19,7 @@ tracks.use((context, next) => jwt({ secret: context.env.ADMIN_JWT_SECRET, alg: '
 /** 楽曲一覧を取得する */
 tracks.get('/', async context => {
   const tracks = await new TracksRepository(context.env.DB).findAll();
-  return context.json({ result: tracks }, httpStatusCode.ok);
-});
-
-/** 紐付け用の楽曲情報を取得する */
-tracks.get('/:id', async context => {  // eslint-disable-line neos-eslint-plugin/comment-colon-spacing
-  const id = Number(context.req.param('id'));
-  if(!Number.isInteger(id) || id < 1) return context.json({ error: invalidIdErrorMessage }, httpStatusCode.badRequest);
-  const track = await new TracksRepository(context.env.DB).findById(id);
-  if(track == null) return context.json({ error: '楽曲が存在しません' }, httpStatusCode.notFound);
-  return context.json({ result: track }, httpStatusCode.ok);
+  return context.json<Result<Array<TrackListItem>>>({ result: tracks }, httpStatusCode.ok);
 });
 
 /** コメントを更新する */
@@ -40,8 +33,6 @@ tracks.patch('/:id', async context => {  // eslint-disable-line neos-eslint-plug
   const parsed = updateTrackSchema.safeParse(body);
   if(!parsed.success) return context.json({ error: mergeIssues(parsed.error) }, httpStatusCode.badRequest);
   
-  const track = await new TracksRepository(context.env.DB).update(id, parsed.data.comment);
-  if(track == null) return context.json({ error: 'コメントの更新に失敗しました' }, httpStatusCode.notFound);
-  
-  return context.json({ result: track }, httpStatusCode.ok);
+  await new TracksRepository(context.env.DB).update(id, parsed.data.comment);
+  return context.json<Result<true>>({ result: true }, httpStatusCode.ok);
 });

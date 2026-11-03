@@ -16,13 +16,14 @@ export default function Tracks(): ReactElement {
   const isHydrated = useTracksStore(state => state.isHydrated);
   const tracks     = useTracksStore(state => state.tracks);
   
-  const [isLoading  , setIsLoading  ] = useState<boolean>(true);               // 一覧読込中か否か
-  const [error      , setError      ] = useState<string>('');                  // 一覧読込に失敗した場合のエラーメッセージ
-  const [searchQuery, setSearchQuery] = useState<string>('');                  // 一覧の検索入力値・空文字は全件表示
-  const [activeTrack, setActiveTrack] = useState<TrackListItem | null>(null);  // コメント編集中の楽曲・閉じていれば `null`
+  const [isLoading  , setIsLoading  ] = useState<boolean>(true);               // 読込中か否か
+  const [error      , setError      ] = useState<string>('');                  // エラーメッセージ
+  const [searchQuery, setSearchQuery] = useState<string>('');                  // 検索入力値・空文字は全件表示
+  const [activeTrack, setActiveTrack] = useState<TrackListItem | null>(null);  // コメント編集中の楽曲・モーダルを閉じていれば `null`
   
-  // 検索文字列の処理とフィルタリングした一覧
+  /** 検索文字列を小文字に統一する */
   const searchText = searchQuery.trim().toLowerCase();
+  /** フィルタリングした楽曲一覧 */
   const filteredTracks = isEmpty(searchText) ? tracks : tracks.filter(track => matchesTrackSearch(track, searchText));
   
   /** 楽曲一覧を取得する */
@@ -59,8 +60,9 @@ export default function Tracks(): ReactElement {
   
   return (
     <main className="px-2 py-4">
-      <div className="mb-4 text-right">
-        <Link className="btn btn-sm" to="/repertoires">レパートリー一覧</Link>
+      <div className="mb-4 grid grid-cols-[1fr_auto] gap-x-2 whitespace-nowrap">
+        <h1 className="font-bold">楽曲一覧</h1>
+        <Link to="/repertoires" className="btn btn-sm">レパートリー一覧</Link>
       </div>
       
       {isLoading && (
@@ -72,15 +74,17 @@ export default function Tracks(): ReactElement {
       )}
       
       {!isLoading && (
-        <div className="mb-4 flex gap-2">
-          <input className="input w-full input-sm" type="search" placeholder="検索" value={searchQuery} onChange={event => setSearchQuery(event.target.value)} />
-          <button className="btn btn-info btn-sm" type="button" disabled={!isHydrated || isLoading} onClick={() => onLoadTracks(true)}>再読込</button>
+        <div className="mb-4 grid grid-cols-[1fr_auto] gap-x-2">
+          <input type="search" className="input w-full input-sm" placeholder="検索" value={searchQuery} onChange={event => setSearchQuery(event.target.value)} />
+          <button type="button" className="btn btn-info btn-sm" disabled={!isHydrated || isLoading} onClick={() => onLoadTracks(true)}>再読込</button>
         </div>
       )}
       
-      {!isLoading && tracks.length === 0 && (<p className="mb-6 text-sm">登録されている楽曲はありません。</p>)}
+      {!isLoading && tracks.length === 0 && (
+        <p className="mb-4 text-sm">登録されている楽曲はありません。</p>
+      )}
       {!isLoading && tracks.length > 0 && (
-        <div className="mb-6 overflow-x-auto">
+        <div className="mb-4 overflow-x-auto">
           <table className="library-table">  {/* eslint-disable-line tailwindcss/no-custom-classname */}
             <colgroup>
               <col className="w-[20%] min-w-[10em]" />

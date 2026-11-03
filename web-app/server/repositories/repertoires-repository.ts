@@ -4,7 +4,7 @@ import type { EditRepertoire } from '../../shared/types/repertoire';
 export class RepertoiresRepository {
   constructor(private readonly db: D1Database) { }
   
-  /** レパートリーを登録する */
+  /** レパートリーを登録する・呼び出し元で登録された ID を取得する */
   public async create(repertoire: EditRepertoire): Promise<D1Result> {
     return await this.db
       .prepare('INSERT INTO repertoires (track_id, artist, album, title, part, proficiency, memo) VALUES (?, ?, ?, ?, ?, ?, ?)')
