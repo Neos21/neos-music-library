@@ -3,7 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { indexedDBStorage } from '../helpers/indexed-db-storage';
 
-import type { TrackListItem } from '../../shared/types/app/track-list-item';
+import type { TrackListItem } from '../../shared/types/track';
 
 /** 楽曲一覧を管理する State */
 type TracksState = {

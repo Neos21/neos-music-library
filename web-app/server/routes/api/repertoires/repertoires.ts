@@ -14,11 +14,9 @@ export const repertoiresPath = '/repertoires' as const;
 
 repertoires.use((context, next) => jwt({ secret: context.env.ADMIN_JWT_SECRET, alg: 'HS256' })(context, next));
 
-/** 指定された条件のレパートリーを取得する */
+/** 紐付く楽曲情報とともに全レパートリーを取得する */
 repertoires.get('/', async context => {
-  if(context.req.query('filter') !== 'no-track') return context.json({ error: 'フィルタが不正です' }, httpStatusCode.badRequest);
-  
-  const result = await new RepertoiresService(context.env.DB).findWithoutTrack();
+  const result = await new RepertoiresService(context.env.DB).findAll();
   return context.json({ result }, httpStatusCode.ok);
 });
 

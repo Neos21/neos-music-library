@@ -84,12 +84,3 @@ export const repertoireSchema = newRepertoireSchema.extend({
   /** 最終更新日時 (入力バリデーションしないので `null` と `undefined` も許容する) */
   updated_at: z.string().nullish()
 });
-
-/** `repertoires` テーブルの型 : 新規登録用 */
-export type NewRepertoire    = z.infer<typeof newRepertoireSchema>;
-/** レパートリーの登録入力 */
-export type CreateRepertoire = z.infer<typeof createRepertoireSchema>;
-/** レパートリーの更新入力 */
-export type UpdateRepertoire = z.infer<typeof updateRepertoireSchema>;
-/** `repertoires` テーブルの型 : 新規登録後 */
-export type Repertoire       = z.infer<typeof repertoireSchema>;

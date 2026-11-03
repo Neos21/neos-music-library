@@ -9,6 +9,8 @@ import { authenticationRedirectReasonReloginRequired, sessionStorageKeyAuthentic
 import { extractApiErrorMessage } from '../../helpers/extract-api-error-message';
 import { useAdminStore } from '../../stores/admin-store';
 
+import type { Result } from '../../../shared/types/utilities/result';
+
 /** トップページ (ログインページ) */
 export default function Index(): ReactElement {
   const navigate = useNavigate();
@@ -23,31 +25,33 @@ export default function Index(): ReactElement {
   
   const [password    , setPassword    ] = useState<string>('');      // パスワード
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);  // ログイン処理中か否か
-  const [loginError  , setLoginError  ] = useState<string>('');      // エラーメッセージ
+  const [error       , setError       ] = useState<string>('');      // エラーメッセージ
   
   /** パスワード入力時に表示中のエラーメッセージも消去する */
   const onChange = (event: ChangeEvent<HTMLInputElement>): void => {
     setPassword(event.target.value);
-    if(!isEmpty(loginError)) setLoginError('');
+    if(!isEmpty(error)) setError('');
   };
   
   /** 入力されたパスワードを検証し、ログインに成功した場合は JWT を保存する */
   const onSubmit = async (event: SubmitEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
-    setLoginError('');
+    setError('');
     
     const payload = { password };
     const parsed = loginSchema.safeParse(payload);
-    if(!parsed.success) return setLoginError(mergeIssues(parsed.error));
+    if(!parsed.success) return setError(mergeIssues(parsed.error));
     
     setIsSubmitting(true);
     try {
-      const response = await ky.post('/api/login', { json: parsed.data }).json<{ result: { token: string; }; }>();
-      useAdminStore.getState().setToken(response.result.token);
+      const result = await ky.post('/api/login', { json: parsed.data }).json<Result<{ token: string; }>>();
+      if(result.error != null) return setError(result.error);
+      
+      useAdminStore.getState().setToken(result.result.token);
       navigate('/tracks');
     }
     catch(error) {
-      setLoginError(extractApiErrorMessage(error, 'ログインに失敗しました'));
+      setError(extractApiErrorMessage(error, 'ログインに失敗しました'));
       setIsSubmitting(false);
     }
   };
@@ -67,8 +71,8 @@ export default function Index(): ReactElement {
         <div className="mb-4 alert alert-soft alert-warning">再度ログインしてください</div>
       )}
       
-      {!isEmpty(loginError) && (
-        <div className="alert alert-soft alert-error">{loginError}</div>
+      {!isEmpty(error) && (
+        <div className="alert alert-soft alert-error">{error}</div>
       )}
     </main>
   );

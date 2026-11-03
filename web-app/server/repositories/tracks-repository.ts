@@ -1,7 +1,6 @@
 import { convertToCrLf } from '../helpers/convert-to-cr-lf';
 
-import type { Track } from '../../shared/schemas/track-schema';
-import type { TrackListItem } from '../../shared/types/app/track-list-item';
+import type { Track, TrackListItem } from '../../shared/types/track';
 
 /** `tracks` テーブルの永続化操作を扱う Repository */
 export class TracksRepository {
@@ -11,7 +10,8 @@ export class TracksRepository {
   public async findAll(): Promise<Array<TrackListItem>> {
     const result = await this.db
       .prepare(`
-        SELECT id, artist, album, track_number, title, comment
+        SELECT
+          id, artist, album, track_number, title, comment
         FROM tracks
         ORDER BY
           artist        ASC NULLS FIRST,

@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactElement } from 'react';
+import { Link } from 'react-router';
 
 import { EditCommentModal } from './components/edit-comment-modal';
 import { isEmpty } from '../../../shared/helpers/is-empty';
@@ -6,7 +7,7 @@ import { adminApi } from '../../helpers/admin-api';
 import { extractApiErrorMessage } from '../../helpers/extract-api-error-message';
 import { useTracksStore } from '../../stores/tracks-store';
 
-import type { TrackListItem } from '../../../shared/types/app/track-list-item';
+import type { TrackListItem } from '../../../shared/types/track';
 import type { Result } from '../../../shared/types/utilities/result';
 
 /** アーティスト名・アルバム名・曲名を大文字小文字を区別せず検索する */
@@ -17,35 +18,31 @@ export default function Tracks(): ReactElement {
   const isHydrated = useTracksStore(state => state.isHydrated);
   const tracks     = useTracksStore(state => state.tracks);
   
-  const [isLoading  , setIsLoading  ] = useState<boolean>(true);            // 一覧読込中か否か
-  const [listError  , setListError  ] = useState<string>('');               // 一覧読込に失敗した場合のエラーメッセージ
-  const [searchQuery, setSearchQuery] = useState<string>('');               // 一覧の検索入力値・空文字は全件表示
-  const [activeTrackId, setActiveTrackId] = useState<number | null>(null);  // コメント編集中の楽曲 ID・閉じていれば `null`
+  const [isLoading  , setIsLoading  ] = useState<boolean>(true);               // 一覧読込中か否か
+  const [error      , setError      ] = useState<string>('');                  // 一覧読込に失敗した場合のエラーメッセージ
+  const [searchQuery, setSearchQuery] = useState<string>('');                  // 一覧の検索入力値・空文字は全件表示
+  const [activeTrack, setActiveTrack] = useState<TrackListItem | null>(null);  // コメント編集中の楽曲・閉じていれば `null`
   
   // 検索文字列の処理とフィルタリングした一覧
   const searchText = searchQuery.trim().toLowerCase();
   const filteredTracks = isEmpty(searchText) ? tracks : tracks.filter(track => matchesSearch(track, searchText));
   
-  // モーダルの管理
-  const activeTrack = activeTrackId == null ? null : tracks.find(track => track.id === activeTrackId);
-  
   /** 楽曲一覧を取得する */
   const onLoadTracks = async (isForceReload = false): Promise<void> => {
-    setListError('');
+    setError('');
     setIsLoading(true);
     
-    const { tracks } = useTracksStore.getState();
-    if(isForceReload === false && tracks.length > 0) return setIsLoading(false);
+    if(isForceReload === false && useTracksStore.getState().tracks.length > 0) return setIsLoading(false);
     
     try {
-      const response = await adminApi.get('/api/tracks').json<Result<Array<TrackListItem>>>();
-      if(response.error != null) return setListError(response.error);
+      const result = await adminApi.get('/api/tracks').json<Result<Array<TrackListItem>>>();
+      if(result.error != null) return setError(result.error);
       
       // Zustand のインメモリキャッシュは同期的に行われ、裏で IndexedDB への保存も非同期で行われる (万が一 `indexedDBStorage` で例外が発生した場合は Uncaught エラーになる)
-      useTracksStore.getState().setTracks(response.result);
+      useTracksStore.getState().setTracks(result.result);
     }
     catch(error) {
-      setListError(extractApiErrorMessage(error, '楽曲一覧の取得に失敗しました'));
+      setError(extractApiErrorMessage(error, '楽曲一覧の取得に失敗しました'));
     }
     finally {
       setIsLoading(false);
@@ -64,10 +61,16 @@ export default function Tracks(): ReactElement {
   
   return (
     <main className="px-2 py-4">
-      {isLoading && (<div className="text-center"><span className="loading loading-spinner text-warning" /></div>)}
+      <div className="mb-4 text-right">
+        <Link className="btn btn-sm" to="/repertoires">レパートリー一覧</Link>
+      </div>
       
-      {!isEmpty(listError) && (
-        <div className="mb-4 alert alert-soft alert-error">{listError}</div>
+      {isLoading && (
+        <div className="text-center"><span className="loading loading-spinner text-warning" /></div>
+      )}
+      
+      {!isEmpty(error) && (
+        <div className="mb-4 alert alert-soft alert-error">{error}</div>
       )}
       
       {!isLoading && (
@@ -107,7 +110,7 @@ export default function Tracks(): ReactElement {
                   <td>{track.album}</td>
                   <td className="text-right whitespace-nowrap">{track.track_number === 0 ? '-' : track.track_number}</td>
                   <td>{track.title}</td>
-                  <td className="cursor-pointer whitespace-pre-wrap hover:bg-zinc-100" onClick={() => setActiveTrackId(track.id)}>{track.comment}</td>
+                  <td className="cursor-pointer whitespace-pre-wrap hover:bg-zinc-100" onClick={() => setActiveTrack(track)}>{track.comment}</td>
                 </tr>
               ))}
             </tbody>
@@ -119,7 +122,7 @@ export default function Tracks(): ReactElement {
         <EditCommentModal
           key={activeTrack.id}
           track={activeTrack}
-          onClose={() => setActiveTrackId(null)}
+          onClose={() => setActiveTrack(null)}
         />
       )}
     </main>

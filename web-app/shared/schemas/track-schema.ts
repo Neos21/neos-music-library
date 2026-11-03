@@ -41,6 +41,3 @@ export const trackSchema = z.object({
 
 /** Web アプリから更新できる楽曲項目 */
 export const updateTrackSchema = trackSchema.pick({ comment: true });
-
-/** `tracks` テーブルの型 */
-export type Track = z.infer<typeof trackSchema>;
