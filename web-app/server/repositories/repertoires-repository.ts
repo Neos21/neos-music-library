@@ -1,40 +1,27 @@
-import type { NewRepertoire, Repertoire, UpdateRepertoire } from '../../shared/types/repertoire';
+import type { EditRepertoire } from '../../shared/types/repertoire';
 
 /** `repertoires` テーブルの永続化操作を扱う Repository */
 export class RepertoiresRepository {
   constructor(private readonly db: D1Database) { }
   
-  /** ID に一致するレパートリーを取得する */
-  public async findById(id: number): Promise<Pick<Repertoire, 'id' | 'track_id'> | null> {
+  /** レパートリーを登録する */
+  public async create(repertoire: EditRepertoire): Promise<D1Result> {
     return await this.db
-      .prepare('SELECT id, track_id FROM repertoires WHERE id = ? LIMIT 1')
-      .bind(id)
-      .first<Pick<Repertoire, 'id' | 'track_id'>>();
-  }
-  
-  /** レパートリー登録用の文を作る */
-  public prepareCreate(repertoire: NewRepertoire): D1PreparedStatement {
-    return this.db
       .prepare('INSERT INTO repertoires (track_id, artist, album, title, part, proficiency, memo) VALUES (?, ?, ?, ?, ?, ?, ?)')
-      .bind(repertoire.track_id, repertoire.artist, repertoire.album, repertoire.title, repertoire.part, repertoire.proficiency, repertoire.memo);
+      .bind(repertoire.track_id, repertoire.artist, repertoire.album, repertoire.title, repertoire.part, repertoire.proficiency, repertoire.memo)
+      .run();
   }
   
-  /** 紐付くトラック ID を維持してレパートリーを更新する文を作る */
-  public prepareUpdate(id: number, repertoire: UpdateRepertoire): D1PreparedStatement {
-    return this.db
-      .prepare('UPDATE repertoires SET artist = ?, album = ?, title = ?, part = ?, proficiency = ?, memo = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-      .bind(repertoire.artist, repertoire.album, repertoire.title, repertoire.part, repertoire.proficiency, repertoire.memo, id);
+  /** レパートリーを更新する */
+  public async update(id: number, repertoire: EditRepertoire): Promise<void> {
+    await this.db
+      .prepare('UPDATE repertoires SET track_id = ?, artist = ?, album = ?, title = ?, part = ?, proficiency = ?, memo = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+      .bind(repertoire.track_id, repertoire.artist, repertoire.album, repertoire.title, repertoire.part, repertoire.proficiency, repertoire.memo, id)
+      .run();
   }
   
-  /** 未紐付けのレパートリーに楽曲を紐付ける文を作る */
-  public prepareLinkTrack(id: number, trackId: number): D1PreparedStatement {
-    return this.db
-      .prepare('UPDATE repertoires SET track_id = ? WHERE id = ? AND track_id IS NULL')
-      .bind(trackId, id);
-  }
-  
-  /** レパートリーを削除する文を作る */
-  public prepareDelete(id: number): D1PreparedStatement {
-    return this.db.prepare('DELETE FROM repertoires WHERE id = ?').bind(id);
+  /** レパートリーを削除する */
+  public async delete(id: number): Promise<void> {
+    await this.db.prepare('DELETE FROM repertoires WHERE id = ?').bind(id).run();
   }
 }

@@ -20,6 +20,15 @@ tracks.get('/', async context => {
   return context.json({ result: tracks }, httpStatusCode.ok);
 });
 
+/** 紐付け用の楽曲情報を取得する */
+tracks.get('/:id', async context => {  // eslint-disable-line neos-eslint-plugin/comment-colon-spacing
+  const id = Number(context.req.param('id'));
+  if(!Number.isInteger(id) || id < 1) return context.json({ error: invalidIdErrorMessage }, httpStatusCode.badRequest);
+  const track = await new TracksRepository(context.env.DB).findById(id);
+  if(track == null) return context.json({ error: '楽曲が存在しません' }, httpStatusCode.notFound);
+  return context.json({ result: track }, httpStatusCode.ok);
+});
+
 /** コメントを更新する */
 tracks.patch('/:id', async context => {  // eslint-disable-line neos-eslint-plugin/comment-colon-spacing
   const id = Number(context.req.param('id'));

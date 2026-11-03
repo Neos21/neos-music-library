@@ -14,6 +14,10 @@ type RepertoiresState = {
   
   /** レパートリーと紐付く楽曲一覧を保存する */
   setRepertoires: (repertoires: Array<RepertoireListItem>) => void;
+  /** 登録・更新後のレパートリーを反映する */
+  upsertRepertoire: (repertoire: RepertoireListItem) => void;
+  /** 削除後のレパートリーを一覧から除く */
+  removeRepertoire: (id: number) => void;
   /** 復元処理が完了したか否かを更新する */
   setIsHydrated: () => void;
 };
@@ -26,6 +30,16 @@ export const useRepertoiresStore = create<RepertoiresState>()(
       isHydrated: false,
       
       setRepertoires: (repertoires): void => { set({ repertoires }) },
+      upsertRepertoire: (repertoire): void => {
+        set(state => ({
+          repertoires: state.repertoires.some(item => item.id === repertoire.id)
+            ? state.repertoires.map(item => item.id === repertoire.id ? repertoire : item)
+            : [...state.repertoires, repertoire]
+        }));
+      },
+      removeRepertoire: (id): void => {
+        set(state => ({ repertoires: state.repertoires.filter(item => item.id !== id) }));
+      },
       setIsHydrated: (): void => { set({ isHydrated: true }) }
     }),
     {

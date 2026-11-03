@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactElement } from 'react';
 import { Link } from 'react-router';
 
+import { RepertoireFormModal } from './components/repertoire-form-modal';
 import { RepertoireModal } from './components/repertoire-modal';
 import { repertoirePartNames, repertoireProficiencyNames } from '../../../shared/constants/repertoire-constants';
 import { isEmpty } from '../../../shared/helpers/is-empty';
@@ -19,13 +20,14 @@ export default function Repertoires(): ReactElement {
   const [isLoading       , setIsLoading       ] = useState<boolean>(true);                    // 一覧読込中か否か
   const [error           , setError           ] = useState<string>('');                       // エラーメッセージ
   const [activeRepertoire, setActiveRepertoire] = useState<RepertoireListItem | null>(null);  // 表示中のレパートリー・モーダルを閉じていれば `null`
+  const [isCreating      , setIsCreating      ] = useState<boolean>(false);                   // 新規登録フォームを表示中か否か
   
   /** キャッシュを優先し、再読込時のみ取得し直す */
   const onLoadRepertoires = async (isForceReload = false): Promise<void> => {
     setError('');
     setIsLoading(true);
     
-    if(isForceReload === false && useRepertoiresStore.getState().repertoires.length > 0) return setIsLoading(false);
+    if(!isForceReload && useRepertoiresStore.getState().repertoires.length > 0) return setIsLoading(false);
     
     try {
       const result = await adminApi.get('/api/repertoires').json<Result<Array<RepertoireListItem>>>();
@@ -42,7 +44,7 @@ export default function Repertoires(): ReactElement {
   };
   
   useEffect(() => {
-    if(isHydrated !== true) return;
+    if(!isHydrated) return;
     (async () => {
       await onLoadRepertoires();
     })();
@@ -63,8 +65,9 @@ export default function Repertoires(): ReactElement {
       )}
       
       {!isLoading && (
-        <div className="mb-4">
+        <div className="mb-4 flex justify-between gap-2">
           <button className="btn btn-info btn-sm" type="button" disabled={!isHydrated || isLoading} onClick={() => onLoadRepertoires(true)}>再読込</button>
+          <button className="btn btn-sm btn-success" type="button" onClick={() => setIsCreating(true)}>レパートリー追加</button>
         </div>
       )}
       
@@ -115,6 +118,13 @@ export default function Repertoires(): ReactElement {
             </tbody>
           </table>
         </div>
+      )}
+      
+      {isCreating && (
+        <RepertoireFormModal
+          repertoire={null}
+          onClose={() => setIsCreating(false)}
+        />
       )}
       
       {activeRepertoire != null && (

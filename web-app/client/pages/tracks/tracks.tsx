@@ -32,7 +32,7 @@ export default function Tracks(): ReactElement {
     setError('');
     setIsLoading(true);
     
-    if(isForceReload === false && useTracksStore.getState().tracks.length > 0) return setIsLoading(false);
+    if(!isForceReload && useTracksStore.getState().tracks.length > 0) return setIsLoading(false);
     
     try {
       const result = await adminApi.get('/api/tracks').json<Result<Array<TrackListItem>>>();
@@ -52,7 +52,7 @@ export default function Tracks(): ReactElement {
   // 画面初期表示時
   useEffect(() => {
     // IndexedDB からの復元が終わっていない間は何もしない
-    if(isHydrated !== true) return;
+    if(!isHydrated) return;
     // キャッシュがあればそれを表示し、キャッシュがなければ (0件なら) API から取得する
     (async () => {
       await onLoadTracks(false);

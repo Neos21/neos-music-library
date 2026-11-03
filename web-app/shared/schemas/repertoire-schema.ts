@@ -13,8 +13,8 @@ const partDisplayName         = 'パート'          as const;
 const proficiencyDisplayName  = '習熟度'          as const;
 const memoDisplayName         = 'メモ'            as const;
 
-/** `repertoires` テーブルのスキーマ : 新規登録用 */
-export const newRepertoireSchema = z.object({
+/** `repertoires` テーブルのスキーマ : 新規登録・編集用 */
+export const editRepertoireSchema = z.object({
   /** トラック ID (`tracks.id` を紐付ける・`null` 許容) */
   track_id    : z.preprocess(
                   preprocessNullableNumber,
@@ -60,18 +60,8 @@ export const newRepertoireSchema = z.object({
                 )
 });
 
-/** レパートリーの登録入力 */
-export const createRepertoireSchema = newRepertoireSchema;
-
-/** レパートリーの更新入力・トラック ID は未紐付けからの紐付け時のみ指定する */
-export const updateRepertoireSchema = createRepertoireSchema.omit({ track_id: true }).extend({
-  track_id: newRepertoireSchema.shape.track_id
-    .refine(trackId => trackId != null, { error: zodErrorMessages.invalidType(trackIdDisplayName) })
-    .optional()
-});
-
-/** `repertoires` テーブルのスキーマ : 新規登録後 */
-export const repertoireSchema = newRepertoireSchema.extend({
+/** `repertoires` テーブルのスキーマ : 登録後の全カラム */
+export const repertoireSchema = editRepertoireSchema.extend({
   /** レパートリー ID */
   id        : z.preprocess(
                 value => isEmpty(value) ? 0 : value,  // `null`・`undefined` は 0 扱いにしてエラーにする

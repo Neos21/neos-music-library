@@ -1,7 +1,6 @@
 import type { trackSchema } from '../schemas/track-schema';
 import type z from 'zod';
 
-
 /** `tracks` テーブルの型 */
 export type Track = z.infer<typeof trackSchema>;
 

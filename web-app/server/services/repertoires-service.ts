@@ -1,7 +1,7 @@
 import { RepertoiresRepository } from '../repositories/repertoires-repository';
 import { TracksRepository } from '../repositories/tracks-repository';
 
-import type { CreateRepertoire, UpdateRepertoire, RepertoireListItem } from '../../shared/types/repertoire';
+import type { EditRepertoire, RepertoireListItem } from '../../shared/types/repertoire';
 import type { Result } from '../../shared/types/utilities/result';
 import type { RepertoireRow } from '../types/repertoire-row';
 
@@ -53,41 +53,27 @@ export class RepertoiresService {
     }));
   }
   
-  /** 楽曲の存在を確認し、レパートリーを登録する */
-  public async create(repertoire: CreateRepertoire): Promise<Result<number>> {
-    if(repertoire.track_id != null) {
-      const track = await new TracksRepository(this.db).findById(repertoire.track_id);
-      if(track == null) return { error: '紐付く楽曲が存在しません' };
-    }
+  /** 紐付ける対象の楽曲の存在を確認し、レパートリーを登録する */
+  public async create(repertoire: EditRepertoire): Promise<Result<RepertoireListItem>> {
+    const track = repertoire.track_id == null ? null : await new TracksRepository(this.db).findById(repertoire.track_id);
+    if(repertoire.track_id != null && track == null) return { error: '紐付く楽曲が存在しません' };
     
-    const result = await new RepertoiresRepository(this.db).prepareCreate(repertoire).run();
-    return { result: result.meta.last_row_id };
+    const result = await new RepertoiresRepository(this.db).create(repertoire);
+    return { result: { ...repertoire, id: result.meta.last_row_id, track } };
   }
   
-  /** レパートリーを更新する */
-  public async update(id: number, repertoire: UpdateRepertoire): Promise<Result<number>> {
-    const repertoiresRepository = new RepertoiresRepository(this.db);
-    const existingRepertoire = await repertoiresRepository.findById(id);
-    if(existingRepertoire == null) return { error: 'レパートリーが存在しません' };
-    if(repertoire.track_id !== undefined) {
-      if(repertoire.track_id == null) return { error: '紐付くトラック ID が不正です' };
-      if(existingRepertoire.track_id != null) return { error: '紐付く楽曲は変更できません' };
-      if(await new TracksRepository(this.db).findById(repertoire.track_id) == null) return { error: '紐付く楽曲が存在しません' };
-    }
+  /** 紐付ける対象の楽曲の存在を確認し、レパートリーを更新する */
+  public async update(id: number, repertoire: EditRepertoire): Promise<Result<RepertoireListItem>> {
+    const track = repertoire.track_id == null ? null : await new TracksRepository(this.db).findById(repertoire.track_id);
+    if(repertoire.track_id != null && track == null) return { error: '紐付く楽曲が存在しません' };
     
-    await this.db.batch([
-      repertoiresRepository.prepareUpdate(id, repertoire),
-      ...(repertoire.track_id == null ? [] : [repertoiresRepository.prepareLinkTrack(id, repertoire.track_id)])
-    ]);
-    return { result: id };
+    await new RepertoiresRepository(this.db).update(id, repertoire);
+    return { result: { ...repertoire, id, track } };
   }
   
   /** レパートリーを削除する */
   public async delete(id: number): Promise<Result<number>> {
-    const repertoiresRepository = new RepertoiresRepository(this.db);
-    if(await repertoiresRepository.findById(id) == null) return { error: 'レパートリーが存在しません' };
-    
-    await repertoiresRepository.prepareDelete(id).run();
+    await new RepertoiresRepository(this.db).delete(id);
     return { result: id };
   }
 }

@@ -20,7 +20,7 @@ export function Layout({ children }: { children: ReactNode }): ReactElement {
   
   // JWT の有無でログイン済か否かをチェックし適宜リダイレクトする
   useEffect((): void => {
-    if(isHydrated !== true) return;  // LocalStorage から Store の復旧が済んでいない段階では何もしない
+    if(!isHydrated) return;  // LocalStorage から Store の復旧が済んでいない段階では何もしない
     
     const isAuthenticated = !isEmpty(token);
     

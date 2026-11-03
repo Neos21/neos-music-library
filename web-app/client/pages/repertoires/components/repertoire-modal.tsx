@@ -1,6 +1,8 @@
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
+import { useState } from 'react';
 
+import { RepertoireFormModal } from './repertoire-form-modal';
 import { repertoirePartNames } from '../../../../shared/constants/repertoire-constants';
 import { isEmpty } from '../../../../shared/helpers/is-empty';
 
@@ -14,10 +16,17 @@ type Props = {
 
 /** クライアント側でメモを Markdown として表示するモーダル */
 export const RepertoireModal = ({ repertoire, onClose }: Props): ReactElement => {
+  const [isEditing, setIsEditing] = useState<boolean>(false);  // 編集フォームを表示中か否か
+  
   // Markdown 内の HTML・リンクも含め、DOM に渡す直前にサニタイズする
   const memoHtml = DOMPurify.sanitize(marked.parse(repertoire.memo ?? '', { async: false }), {
     USE_PROFILES: { html: true }
   });
+  
+  // 編集時はフォームモーダルに切り替える
+  if(isEditing) return (
+    <RepertoireFormModal repertoire={repertoire} onClose={onClose} />
+  );
   
   return (
     <div className="modal modal-open">
@@ -30,7 +39,7 @@ export const RepertoireModal = ({ repertoire, onClose }: Props): ReactElement =>
         )}
         <div className="modal-action justify-between">
           <button className="btn" type="button" onClick={onClose}>閉じる</button>
-          <button className="btn btn-info" type="button" disabled>編集</button>
+          <button className="btn btn-info" type="button" onClick={() => setIsEditing(true)}>編集</button>
         </div>
       </div>
     </div>
