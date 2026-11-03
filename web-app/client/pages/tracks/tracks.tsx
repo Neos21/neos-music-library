@@ -5,13 +5,11 @@ import { EditCommentModal } from './components/edit-comment-modal';
 import { isEmpty } from '../../../shared/helpers/is-empty';
 import { adminApi } from '../../helpers/admin-api';
 import { extractApiErrorMessage } from '../../helpers/extract-api-error-message';
+import { matchesTrackSearch } from '../../helpers/matches-track-search';
 import { useTracksStore } from '../../stores/tracks-store';
 
 import type { TrackListItem } from '../../../shared/types/track';
 import type { Result } from '../../../shared/types/utilities/result';
-
-/** アーティスト名・アルバム名・曲名を大文字小文字を区別せず検索する */
-const matchesSearch = (item: Pick<TrackListItem, 'artist' | 'album' | 'title'>, searchText: string): boolean => (item.artist ?? '').toLowerCase().includes(searchText) || (item.album ?? '').toLowerCase().includes(searchText) || item.title.toLowerCase().includes(searchText);
 
 /** 楽曲一覧 */
 export default function Tracks(): ReactElement {
@@ -25,7 +23,7 @@ export default function Tracks(): ReactElement {
   
   // 検索文字列の処理とフィルタリングした一覧
   const searchText = searchQuery.trim().toLowerCase();
-  const filteredTracks = isEmpty(searchText) ? tracks : tracks.filter(track => matchesSearch(track, searchText));
+  const filteredTracks = isEmpty(searchText) ? tracks : tracks.filter(track => matchesTrackSearch(track, searchText));
   
   /** 楽曲一覧を取得する */
   const onLoadTracks = async (isForceReload = false): Promise<void> => {

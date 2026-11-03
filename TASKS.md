@@ -10,27 +10,4 @@
 
 ## タスクリスト
 
-- [x] `pages/library/library.tsx` を `pages/tracks/tracks.tsx` に名称変更する。関連するページのパス・API も `/library` から `/tracks` に、`library-service` なども `tracks-service` に名称変更・統一する。既存の `/api/tracks` のコメント更新 API と統合する
-- [x] `tracks.tsx` は GET `/api/tracks` から `tracks` テーブルのみを取得し一覧表示するようにする。`repertoires` テーブル等は JOIN せず、`tracks.comment` の編集モーダルのみを残す。同時に `libraryStore` を `tracksStore` に名称変更し、`tracks` テーブルのみを IndexedDB に同期保存する Store に分離する
-- [x] `repertoire_links` テーブルへのコード上の依存を削除する。対象テーブルを操作する Repository、関連する型・Schema・定数、API・Service・UI 内の処理なども削除対象とする。既存データの保持・移行は考慮しない。テーブル自体の削除は開発者が手動で行うため、マイグレーション SQL ファイルは編集せず、DB 操作も実行しない
-- [x] `pages/repertoires/repertoires.tsx` ページを新規作成し、`repertoires` テーブルを中心に、紐付く `tracks` テーブルのレコードがあったら一緒に取得する GET `/api/repertoires` を用意する。同時に `repertoiresStore` を新設し、`repertoires` + 紐付く `tracks` を IndexedDB に同期保存する
-- [x] `repertoires.tsx` の一覧表は次のように表示する
-  - 列 : ID・アーティスト・アルバム・曲名・パート・習熟度
-  - 紐付く `tracks` があった場合 : アーティスト・アルバム・曲名欄は、通常の黒字で `tracks` テーブルの値を表示し、その下に文字サイズを小さく・灰色で `repertoires` テーブルの値も表示する。ID 列には `tracks.id` を表示する
-  - 紐付く `tracks` がない場合 : アーティスト・アルバム・曲名欄は、通常の黒字で `repertoires` テーブルの値を表示する。ID 列には `-` を表示する
-- [x] `repertoires.tsx` の一覧表の任意のセル (行) をクリックするとモーダルが開き、`repertoires.memo` を Markdown 文字列としてパースして表示する。リスト・リンク・太字などが TailwindCSS でスタイリングされるようにする。モーダル右下に「編集」、モーダル左下に「閉じる」ボタンを置く
-- [x] レパートリーの新規登録・編集・削除フォームと API を整備する
-  - `repertoires.tsx` にレパートリーの新規登録ボタンを配置し、新規登録フォームを開けるようにする
-  - 表示モーダル内の「編集」ボタンを押すと、`repertoires` テーブルの `track_id`・`artist`・`album`・`title`・`part` (セレクトボックス)・`proficiency` (セレクトボックス)・`memo` (テキストエリア) の入力フォームに切り替わる
-  - 編集フォームのモーダル右下は「変更する」、モーダル左下は「キャンセル」ボタンに変更する。「キャンセル」は変更を破棄してモーダルを閉じる。既存レパートリーの「削除」ボタンは「キャンセル」と「変更する」の間に配置する
-  - `track_id` 入力欄にはテキストボックスと「検索」ボタンを用意する。空欄の場合は `track_id: null` として紐付きのないレパートリーを保存できるようにし、更新 API も紐付け解除を許容する
-  - 有効な `track_id` を入力した場合は、入力欄の下部に `tracks` テーブルのアーティスト名・アルバム名・曲名を小さく表示し、その隣に「転記」ボタンを表示する。「転記」を押すと、表示中の値を `repertoires` の `artist`・`album`・`title` の各入力欄にコピーする
-  - 転記は任意とし、`track_id` の選択・変更だけでは各入力欄を自動上書きしない。`tracks` と `repertoires` の値の不一致に対する入力チェックは行わない
-  - 新規登録・更新・削除後は `repertoiresStore` に結果を反映する
-- [ ] レパートリーの新規登録・編集フォームから開く楽曲選択モーダルを実装する
-  - `track_id` 入力欄の「検索」ボタンを押すと、フォームのモーダルに加えて楽曲選択モーダルを表示する
-  - モーダル内のテキストボックスに文字を入れると、`tracks` のアーティスト名・アルバム名・曲名のいずれかに合致する楽曲情報を一覧表で表示する。検索の要領は旧 `library.tsx` 内の `searchQuery` 相当とする
-  - 行をクリックすると、その楽曲を紐付け対象として選択し、フォームの `track_id` に反映する
-  - 楽曲選択や `track_id` 下部の楽曲情報表示などでは、API コールよりも `tracksStore`・`repertoiresStore` からの参照を優先し、D1 への読み書きの回数を少なく保つ
-
 - (現在タスクなし・開発者の指示に沿って個々の作業を実施する)
