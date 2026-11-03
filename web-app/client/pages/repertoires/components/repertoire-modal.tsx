@@ -10,16 +10,31 @@ import type { RepertoireListItem } from '../../../../shared/types/repertoire';
 import type { ReactElement } from 'react';
 
 type Props = {
+  /** 表示対象のレパートリー */
   repertoire: RepertoireListItem;
+  /** モーダルを閉じた時の処理 */
   onClose: () => void;
 };
 
-/** クライアント側でメモを Markdown として表示するモーダル */
+/** レパートリー詳細モーダル : メモは Markdown としてパース表示する */
 export const RepertoireModal = ({ repertoire, onClose }: Props): ReactElement => {
   const [isEditing, setIsEditing] = useState<boolean>(false);  // 編集フォームを表示中か否か
   
-  /** メモを Markdown として解釈しサニタイズする */
-  const memoHtml = DOMPurify.sanitize(marked.parse(repertoire.memo ?? '', { async: false }), { USE_PROFILES: { html: true } });
+  // メモを Markdown として解釈しサニタイズする
+  const [memoHtml] = useState<string>(() => {
+    const memoFragment = DOMPurify.sanitize(marked.parse(repertoire.memo ?? '', { async: false }), {
+      USE_PROFILES: { html: true },
+      RETURN_DOM_FRAGMENT: true
+    });
+    // リンクを新規ウィンドウで開くようにしておく
+    memoFragment.querySelectorAll('a').forEach(link => {
+      link.setAttribute('target', '_blank');
+      link.setAttribute('rel', 'noreferrer');
+    });
+    const memoElement = document.createElement('div');
+    memoElement.appendChild(memoFragment);
+    return memoElement.innerHTML;
+  });
   
   // 編集時はフォームモーダルに切り替える
   if(isEditing) return (
