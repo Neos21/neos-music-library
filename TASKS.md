@@ -14,11 +14,11 @@
 - [x] `tracks.tsx` は GET `/api/tracks` から `tracks` テーブルのみを取得し一覧表示するようにする。`repertoires` テーブル等は JOIN せず、`tracks.comment` の編集モーダルのみを残す。同時に `libraryStore` を `tracksStore` に名称変更し、`tracks` テーブルのみを IndexedDB に同期保存する Store に分離する
 - [x] `repertoire_links` テーブルへのコード上の依存を削除する。対象テーブルを操作する Repository、関連する型・Schema・定数、API・Service・UI 内の処理なども削除対象とする。既存データの保持・移行は考慮しない。テーブル自体の削除は開発者が手動で行うため、マイグレーション SQL ファイルは編集せず、DB 操作も実行しない
 - [x] `pages/repertoires/repertoires.tsx` ページを新規作成し、`repertoires` テーブルを中心に、紐付く `tracks` テーブルのレコードがあったら一緒に取得する GET `/api/repertoires` を用意する。同時に `repertoiresStore` を新設し、`repertoires` + 紐付く `tracks` を IndexedDB に同期保存する
-- [ ] `repertoires.tsx` の一覧表は次のように表示する
+- [x] `repertoires.tsx` の一覧表は次のように表示する
   - 列 : ID・アーティスト・アルバム・曲名・パート・習熟度
   - 紐付く `tracks` があった場合 : アーティスト・アルバム・曲名欄は、通常の黒字で `tracks` テーブルの値を表示し、その下に文字サイズを小さく・灰色で `repertoires` テーブルの値も表示する。ID 列には `tracks.id` を表示する
   - 紐付く `tracks` がない場合 : アーティスト・アルバム・曲名欄は、通常の黒字で `repertoires` テーブルの値を表示する。ID 列には `-` を表示する
-- [ ] `repertoires.tsx` の一覧表の任意のセル (行) をクリックするとモーダルが開き、`repertoires.memo` を Markdown 文字列としてパースして表示する。リスト・リンク・太字などが TailwindCSS でスタイリングされるようにする。モーダル右下に「編集」、モーダル左下に「閉じる」ボタンを置く
+- [x] `repertoires.tsx` の一覧表の任意のセル (行) をクリックするとモーダルが開き、`repertoires.memo` を Markdown 文字列としてパースして表示する。リスト・リンク・太字などが TailwindCSS でスタイリングされるようにする。モーダル右下に「編集」、モーダル左下に「閉じる」ボタンを置く
 - [ ] レパートリーの新規登録・編集・削除フォームと API を整備する
   - `repertoires.tsx` にレパートリーの新規登録ボタンを配置し、新規登録フォームを開けるようにする
   - 表示モーダル内の「編集」ボタンを押すと、`repertoires` テーブルの `track_id`・`artist`・`album`・`title`・`part` (セレクトボックス)・`proficiency` (セレクトボックス)・`memo` (テキストエリア) の入力フォームに切り替わる
